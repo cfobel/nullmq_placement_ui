@@ -1,29 +1,39 @@
 <html>
 <head>
-<title>Grid using d3.js</title>
+<title>NullMQ echo server example</title>
+<link href="/dist/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+<link href="/dist/bootstrap/css/bootstrap-responsive.css" rel="stylesheet">
 <script src="http://code.jquery.com/jquery-latest.js"></script>
 <script type="text/javascript" src="http://jashkenas.github.com/coffee-script/extras/coffee-script.js"></script>
 <script type="text/javascript" src="/dist/lib/stomp.js"></script>
 <script type="text/javascript" src="/dist/nullmq.js"></script>
 </head>
 <body>
+<div class="container">
+
+<!-- Masthead
+================================================== -->
+<header class="jumbotron subhead" id="overview">
+  <div class="row">
+    <div class="span6">
+      <h1>NullMQ echo server example</h1>
+      <p class="lead">Enter a message and click the send button.</p>
+    </div>
+  </div>
+</header>
 
 <fieldset>
-<input name="request" maxlength="100" placeholder="Request (e.g., hello world)" type="text" id="id_request" />
-<button name="send_request" id="id_send_request">Send request</button>
+    <div class="control-group">  
+        <div class="controls">
+            <input class="span5" name="request" maxlength="100" placeholder="Request (e.g., hello world)" type="text" id="id_request" />
+        </div>
+    </div>
+    <button name="send_request" id="id_send_request">Send request</button>
 </fieldset>
+</div>
 
+<script type="text/coffeescript" src="/dist/echo_controller.coffee"></script>
 <script type="text/coffeescript">
-    class EchoController
-        constructor: (@context, @uri) ->
-            @echo_be = @context.socket(nullmq.REQ)
-            @echo_be.connect(@uri)
-
-        do_request: (message) ->
-            if message.length > 0
-                @echo_be.send(message)
-                @echo_be.recv(alert)
-
     context = new nullmq.Context('ws://'+window.location.hostname+':9000')
     echo_controller = new EchoController(context, 'tcp://localhost:9001')
     $("#id_send_request").click(() ->
