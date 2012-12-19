@@ -6,6 +6,7 @@
 <script src="http://code.jquery.com/jquery-latest.js"></script>
 <script type="text/javascript" src="http://jashkenas.github.com/coffee-script/extras/coffee-script.js"></script>
 <script type="text/javascript" src="http://mbostock.github.com/d3/d3.v2.js"></script>
+<script type="text/javascript" src="http://underscorejs.org/underscore-min.js"></script>
 <script type="text/javascript" src="/dist/lib/stomp.js"></script>
 <script type="text/javascript" src="/dist/nullmq.js"></script>
 </head>
@@ -25,19 +26,31 @@
 </section>
 
 <section id="placement">
-    <div id="placement_info">
-        <table class="table table-bordered table-striped table-hover span5">
+  <div class="row">
+    <div id="chart" class="span8 visible"></div>
+    <div class="span4">
+      <div class="row">
+        <h3>Current block:</h3>
+        <div id="placement_info_current" class="span4 visible" ></div>
+      </div>
+    </div>
+    <div class="span4">
+      <div class="row">
+        <h3>Selected blocks:</h3>
+        <div id="placement_info_selected" class="span4 visible" ></div>
+      </div>
+    </div>
+    <div id="placement_info_template" class="invisible" >
+    <!-- The contents of the tag are used as a template to format an info table
+        for a block -->
+        <table class="condensed-table table-bordered table-striped table-hover">
             <tbody>
-            <tr>
-                <th>Field</th>
-                <th>Value</th>
-            </tr>
-            <tr><td>Coordinates</td><td id="block_coordinates">(None, None)</td></tr>
-            <tr><td>Block id</td><td id="block_id">None</td></tr>
+            <tr><th>Coordinates</th><td class="block_coordinates">({{ x }}, {{ y }})</td></tr>
+            <tr><th>Block id</th><td class="block_id">{{ block_id }}</td></tr>
             </tbody>
         </table>
     </div>
-    <div id="chart"></div>
+  </div>
 </section>
 
 <script type="text/coffeescript" src="/dist/grid.coffee"></script>
