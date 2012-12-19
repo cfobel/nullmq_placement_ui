@@ -5,6 +5,7 @@
 <link href="/dist/bootstrap/css/bootstrap-responsive.css" rel="stylesheet">
 <script src="http://code.jquery.com/jquery-latest.js"></script>
 <script type="text/javascript" src="http://jashkenas.github.com/coffee-script/extras/coffee-script.js"></script>
+<script type="text/javascript" src="http://mbostock.github.com/d3/d3.v2.js"></script>
 <script type="text/javascript" src="/dist/lib/stomp.js"></script>
 <script type="text/javascript" src="/dist/nullmq.js"></script>
 </head>
@@ -16,25 +17,44 @@
     <h1>NullMQ echo server example</h1>
   </div>
   <div class="row">
-    <p class="lead">Enter a message and click the send button.</p>
+    <p class="lead">Click the button below to load block positions from placement controller.</p>
     <fieldset>
-        <div class="control-group">  
-            <div class="controls">
-                <input class="span8" name="request" maxlength="150" placeholder="Request (e.g., hello world)" type="text" id="id_request" />
-            </div>
-        </div>
-        <button name="send_request" id="id_send_request">Send request</button>
+        <button name="load_placement" id="id_load_placement">Load placement</button>
     </fieldset>
   </div>
 </section>
 
+<section id="placement">
+    <div id="placement_info">
+        <table class="table table-bordered table-striped table-hover span5">
+            <tbody>
+            <tr>
+                <th>Field</th>
+                <th>Value</th>
+            </tr>
+            <tr><td>Coordinates</td><td id="block_coordinates">(None, None)</td></tr>
+            <tr><td>Block id</td><td id="block_id">None</td></tr>
+            </tbody>
+        </table>
+    </div>
+    <div id="chart"></div>
+</section>
+
+<script type="text/coffeescript" src="/dist/grid.coffee"></script>
 <script type="text/coffeescript" src="/dist/echo_controller.coffee"></script>
 <script type="text/coffeescript">
-    context = new nullmq.Context('ws://'+window.location.hostname+':9000')
-    echo_controller = new EchoJsonController(context, 'tcp://localhost:9001')
-    $("#id_send_request").click(() ->
-        message = $('#id_request').val()
-        echo_controller.do_request(message)
+    @context = new nullmq.Context('ws://maeby.fobel.net:9000')
+    @placement_grid = new PlacementGrid("#chart", 600)
+
+    class PlacementController extends EchoJsonController
+        on_recv: (json_v) =>
+            v = super json_v
+            placement_grid.set_data(v.result)
+
+    @echo_controller = new PlacementController(@context, 'tcp://localhost:9003')
+
+    $("#id_load_placement").click(() =>
+        echo_controller.do_request('{"command": "get_block_positions"}')
     )
 </script>
 </body>

@@ -2,6 +2,7 @@ class @EchoController
     constructor: (@context, @uri) ->
         @echo_be = @context.socket(nullmq.REQ)
         @echo_be.connect(@uri)
+        @last_response = null
 
     on_recv: alert
 
@@ -16,12 +17,14 @@ class @EchoController
 
 
 class @EchoJsonController extends @EchoController
-    on_recv: (json_v) ->
+    on_recv: (json_v) =>
         try
             v = JSON.parse(json_v)
-            alert('"' + json_v + '" -> ' + v)
+            #alert('"' + json_v + '" -> ' + v)
         catch error
             alert(error)
+        @last_response = v
+        return v
 
     send: (message) ->
         value = JSON.parse(message)
