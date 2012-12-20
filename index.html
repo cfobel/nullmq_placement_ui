@@ -1,4 +1,5 @@
-<html>
+<!DOCTYPE html PUBLIC "-/>
+<html lang="en">
 <head>
 <title>NullMQ echo server example</title>
 <link href="/dist/bootstrap/css/bootstrap.min.css" rel="stylesheet">
@@ -37,6 +38,9 @@
     <div class="span4">
       <div class="row">
         <h3>Selected blocks:</h3>
+        <fieldset>
+            <button name="clear_selection" id="id_clear_selection">Clear selection</button>
+        </fieldset>
         <div id="placement_info_selected" class="span4 visible" ></div>
       </div>
     </div>
@@ -65,7 +69,9 @@
             placement_grid.set_data(v.result)
 
     @echo_controller = new PlacementController(@context, 'tcp://localhost:9003')
-
+    $("#id_clear_selection").click(() =>
+        placement_grid.clear_selection()
+    )
     $("#id_load_placement").click(() =>
         echo_controller.do_request('{"command": "get_block_positions"}')
     )

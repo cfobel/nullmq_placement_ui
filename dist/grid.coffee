@@ -3,7 +3,7 @@ class @PlacementGrid
         @grid = d3.select(@id)
                         .append("svg")
                         .attr("width", 1.1 * @width)
-                        .attr("height", 1.5 * @width)
+                        .attr("height", 1.1 * @width)
                         .attr("class", "chart")
         @scale =
             x: d3.scale.linear()
@@ -24,6 +24,7 @@ class @PlacementGrid
           interpolate: /\{\{(.+?)\}\}/g
         @template_text = d3.select("#placement_info_template").html()
         @template = _.template(@template_text)
+        @selected_container = d3.select("#placement_info_selected")
 
     set_block_positions: (block_positions) ->
         data = new Array()
@@ -47,18 +48,15 @@ class @PlacementGrid
         @scale.x.domain([@dims.x.min, @dims.x.max + 1]).range([0, @width])
         @scale.y.domain([@dims.y.min, @dims.y.max + 1]).range([@width, 0])
         @block_positions = data
-
-    set_data: (raw_block_positions) ->
-        @set_block_positions(raw_block_positions)
-
-        @blocks = @grid.selectAll(".cell")
-              .data(@block_positions)
-            .enter()
-            .append("svg:g")
-             .attr("transform", (d) => "translate(" + @scale.x(d.x) + "," + @scale.y(d.y) + ")")
-        @draw()
+        @blocks = null
 
     block_color: (d) -> if d.io then @io_fill_color else @clb_fill_color
+
+    clear_selection: () ->
+        for block_id,block of @selected_blocks
+            block.selected = false
+        @selected_blocks = {}
+        @update_block_info()
 
     select_block: (d) ->
         @selected_blocks[d.block_id] = d
@@ -68,18 +66,25 @@ class @PlacementGrid
         delete @selected_blocks[d.block_id]
         @update_block_info()
 
+    selected_block_values: () -> (block for block_id,block of @selected_blocks)
+
     update_block_info: () ->
-        blocks = new Array()
-        for block_id,block of @selected_blocks
-            blocks.push(block)
-        placement_infos = d3.select("#placement_info_selected")
-                .selectAll(".placement_info")
-                .data(blocks, (d) -> d.block_id)
-        placement_infos.enter()
+        block_objs = @selected_block_values()
+        infos = @selected_container.selectAll(".placement_info")
+                .data(block_objs, (d) -> d.block_id)
+        infos.enter()
                 .append("div")
                 .attr("class", "placement_info")
-                .html((d) -> placement_grid.template(d));
-        placement_infos.exit().remove();
+                .html((d) -> placement_grid.template(d))
+        infos.exit().remove()
+
+        @cells = @grid.selectAll(".cell")
+             .attr("transform", (d) => "translate(" + @scale.x(d.x) + "," + @scale.y(d.y) + ")")
+        if @blocks
+            @blocks.selectAll(".block")
+                 .style("fill", (d) => if d.selected then @selected_fill_color else @block_color(d))
+                 .style("fill-opacity", (d) -> if d.selected then 0.9 else 0.5)
+                 .style("stroke-width", (d) -> if d.selected then 3 else 1)
 
     draw: () ->
         context = @
@@ -91,13 +96,6 @@ class @PlacementGrid
                 # Toggle selected state of clicked block
                 obj = context
                 d.selected = !d.selected
-                color = if d.selected then obj.selected_fill_color else obj.block_color(d)
-                opacity = if d.selected then 0.9 else 0.5
-                stroke_width = if d.selected then 3 else 1
-                d3.select(this)
-                    .style('fill', color)
-                    .style('fill-opacity', opacity)
-                    .style('stroke-width', stroke_width)
                 if d.selected
                     obj.select_block(d)
                 else
@@ -117,9 +115,12 @@ class @PlacementGrid
             .style("fill", (d) => @block_color(d))
             .style("stroke", '#555')
             .style('fill-opacity', 0.5)
-###
-        @blocks.append("svg:text")
-            .attr("transform", "translate(" + (@scale.x(1) / 2.0) + "," + (@scale.y(@dims.y.max) / 2.0) + ")")
-            .attr("text-anchor", "middle")
-            .text((d) -> d.block_id)
-###
+
+    set_data: (raw_block_positions) ->
+        @set_block_positions(raw_block_positions)
+        @blocks = @grid.selectAll(".cell")
+              .data(@block_positions)
+            .enter()
+            .append("svg:g")
+             .attr("transform", (d) => "translate(" + @scale.x(d.x) + "," + @scale.y(d.y) + ")")
+        @draw()
