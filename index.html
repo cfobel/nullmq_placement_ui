@@ -1,7 +1,7 @@
 <!DOCTYPE html PUBLIC "-/>
 <html lang="en">
 <head>
-<title>NullMQ echo server example</title>
+<title>NullMQ placement server example</title>
 <link href="/dist/bootstrap/css/bootstrap.min.css" rel="stylesheet">
 <link href="/dist/bootstrap/css/bootstrap-responsive.css" rel="stylesheet">
 <script src="http://code.jquery.com/jquery-latest.js"></script>
@@ -14,9 +14,9 @@
 <body>
 <div class="container">
 
-<section id="echo_server_example">
+<section id="placement_server_example">
   <div class="page-header">
-    <h1>NullMQ echo server example</h1>
+    <h1>NullMQ placement server example</h1>
   </div>
   <div class="row">
     <p class="lead">Click the button below to load block positions from placement controller.</p>
@@ -63,17 +63,14 @@
     @context = new nullmq.Context('ws://maeby.fobel.net:9000')
     @placement_grid = new PlacementGrid("#chart", 600)
 
-    class PlacementController extends EchoJsonController
-        on_recv: (json_v) =>
-            v = super json_v
-            placement_grid.set_data(v.result)
-
-    @echo_controller = new PlacementController(@context, 'tcp://localhost:9003')
+    @placement_controller = new PlacementController(@context, 'tcp://localhost:9003')
     $("#id_clear_selection").click(() =>
         placement_grid.clear_selection()
     )
     $("#id_load_placement").click(() =>
-        echo_controller.do_request('{"command": "get_block_positions"}')
+        placement_controller.do_request({"command": "get_block_positions"}, (value) ->
+            placement_grid.set_data(value.result)
+        )
     )
 </script>
 </body>

@@ -57,14 +57,17 @@ class @PlacementGrid
             block.selected = false
         @selected_blocks = {}
         @update_block_info()
+        @update_cells()
 
     select_block: (d) ->
         @selected_blocks[d.block_id] = d
         @update_block_info()
+        @update_cells()
 
     deselect_block: (d) ->
         delete @selected_blocks[d.block_id]
         @update_block_info()
+        @update_cells()
 
     selected_block_values: () -> (block for block_id,block of @selected_blocks)
 
@@ -72,29 +75,34 @@ class @PlacementGrid
         block_objs = @selected_block_values()
         infos = @selected_container.selectAll(".placement_info")
                 .data(block_objs, (d) -> d.block_id)
+        infos.html((d) -> placement_grid.template(d))
         infos.enter()
                 .append("div")
                 .attr("class", "placement_info")
                 .html((d) -> placement_grid.template(d))
         infos.exit().remove()
 
-        @cells = @grid.selectAll(".cell")
-             .attr("transform", (d) => "translate(" + @scale.x(d.x) + "," + @scale.y(d.y) + ")")
-        if @blocks
-            @blocks.selectAll(".block")
-                 .style("fill", (d) => if d.selected then @selected_fill_color else @block_color(d))
-                 .style("fill-opacity", (d) -> if d.selected then 0.9 else 0.5)
-                 .style("stroke-width", (d) -> if d.selected then 3 else 1)
+    set_data: (raw_block_positions) ->
+        @set_block_positions(raw_block_positions)
+        @update_cells()
 
-    draw: () ->
-        context = @
-        @blocks.append("svg:rect")
+    update_cells: () ->
+        @blocks = @grid.selectAll(".cell")
+            .data(@block_positions, (d) -> d.block_id)
+        @blocks.transition()
+            .duration(1000)
+            .attr("transform", (d) => "translate(" + @scale.x(d.x) + "," + @scale.y(d.y) + ")")
+        obj = @
+        @blocks.enter()
+            .append("svg:g")
+            .attr("transform", (d) => "translate(" + @scale.x(d.x) + "," + @scale.y(d.y) + ")")
+            .attr("class", "cell")
+            .append("svg:rect")
             .attr("class", "block")
             .attr("width", @scale.x(1))
             .attr("height", @scale.y(@dims.y.max))
             .on('click', (d) ->
                 # Toggle selected state of clicked block
-                obj = context
                 d.selected = !d.selected
                 if d.selected
                     obj.select_block(d)
@@ -115,12 +123,9 @@ class @PlacementGrid
             .style("fill", (d) => @block_color(d))
             .style("stroke", '#555')
             .style('fill-opacity', 0.5)
+        @blocks.exit().remove()
 
-    set_data: (raw_block_positions) ->
-        @set_block_positions(raw_block_positions)
-        @blocks = @grid.selectAll(".cell")
-              .data(@block_positions)
-            .enter()
-            .append("svg:g")
-             .attr("transform", (d) => "translate(" + @scale.x(d.x) + "," + @scale.y(d.y) + ")")
-        @draw()
+        @blocks.selectAll(".block")
+            .style("fill", (d) => if d.selected then @selected_fill_color else @block_color(d))
+            .style("fill-opacity", (d) -> if d.selected then 0.9 else 0.5)
+            .style("stroke-width", (d) -> if d.selected then 3 else 1)
