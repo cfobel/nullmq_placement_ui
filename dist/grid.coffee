@@ -16,7 +16,7 @@ class @PlacementGrid
                 min: 1000000
                 max: -1
         @colors = d3.scale.category10().domain(d3.range(10))
-        @selected_fill_color = @colors(2)
+        @selected_fill_color_num = 8
         @io_fill_color = @colors(1)
         @clb_fill_color = @colors(9)
         @selected_blocks = {}
@@ -25,8 +25,15 @@ class @PlacementGrid
         @template_text = d3.select("#placement_info_template").html()
         @template = _.template(@template_text)
         @selected_container = d3.select("#placement_info_selected")
+        @block_positions = null
+        @batch_block_positions = new Array()
+        @batch_color_num = 2
+        @batch_styles = new Array()
+        @batch_i = 0
 
-    set_block_positions: (block_positions) ->
+    selected_fill_color: () -> @colors(@selected_fill_color_num)
+
+    translate_block_positions: (block_positions) ->
         data = new Array()
         for position, i in block_positions
             item =
@@ -35,6 +42,17 @@ class @PlacementGrid
                 y: position[1]
                 z: position[2]
                 selected: false
+                fill_opacity: 0.5
+                stroke_width: 1
+                batch_index: @batch_i
+                fill_color: @batch_styles[@batch_i].fill_color
+            if @batch_i > 0
+                old_item = @batch_block_positions[@batch_i - 1][i]
+                if old_item.x == item.x and old_item.y == item.y
+                    item.fill_color = old_item.fill_color
+                    item.moved = false
+                else
+                    item.moved = true
             data.push(item)
             @dims.x.max = Math.max(item.x, @dims.x.max)
             @dims.x.min = Math.min(item.x, @dims.x.min)
@@ -47,10 +65,11 @@ class @PlacementGrid
                 item.io = false
         @scale.x.domain([@dims.x.min, @dims.x.max + 1]).range([0, @width])
         @scale.y.domain([@dims.y.min, @dims.y.max + 1]).range([@width, 0])
-        @block_positions = data
-        @blocks = null
+        return data
 
-    block_color: (d) -> if d.io then @io_fill_color else @clb_fill_color
+    block_color: (d) ->
+        result = if d.io then @io_fill_color else d.fill_color
+        return result
 
     clear_selection: () ->
         for block_id,block of @selected_blocks
@@ -83,19 +102,22 @@ class @PlacementGrid
         infos.exit().remove()
 
     set_data: (raw_block_positions) ->
-        @set_block_positions(raw_block_positions)
+        @batch_i = @batch_block_positions.length
+        console.log("block_positions", @batch_block_positions)
+        @batch_styles.push({"fill_color": @colors(@batch_color_num)})
+        @batch_color_num += 3
+        console.log("batch_styles", @batch_styles)
+        @block_positions = @translate_block_positions(raw_block_positions)
+        @batch_block_positions.push(@block_positions)
+        @update_block_info()
         @update_cells()
 
     update_cells: () ->
         @blocks = @grid.selectAll(".cell")
             .data(@block_positions, (d) -> d.block_id)
-        @blocks.transition()
-            .duration(1000)
-            .attr("transform", (d) => "translate(" + @scale.x(d.x) + "," + @scale.y(d.y) + ")")
         obj = @
         @blocks.enter()
             .append("svg:g")
-            .attr("transform", (d) => "translate(" + @scale.x(d.x) + "," + @scale.y(d.y) + ")")
             .attr("class", "cell")
             .append("svg:rect")
             .attr("class", "block")
@@ -109,7 +131,15 @@ class @PlacementGrid
                 else
                     obj.deselect_block(d)
             )
+            .on('mouseout', (d) ->
+                d3.select(this)
+                    .style("fill-opacity", d.fill_opacity)
+                    .style("stroke-width", d.stroke_width)
+            )
             .on('mouseover', (d) ->
+                d3.select(this)
+                    .style("fill-opacity", 1.0)
+                    .style("stroke-width", 6)
                 # Update current block info table
                 current_info = d3.select("#placement_info_current")
                         .selectAll(".placement_info")
@@ -120,12 +150,29 @@ class @PlacementGrid
                         .html((d) -> placement_grid.template(d))
                 current_info.exit().remove()
             )
-            .style("fill", (d) => @block_color(d))
             .style("stroke", '#555')
-            .style('fill-opacity', 0.5)
+            .style('fill-opacity', (d) -> d.fill_opacity)
+            .style('stroke-width', (d) -> d.stroke_width)
         @blocks.exit().remove()
 
-        @blocks.selectAll(".block")
-            .style("fill", (d) => if d.selected then @selected_fill_color else @block_color(d))
-            .style("fill-opacity", (d) -> if d.selected then 0.9 else 0.5)
-            .style("stroke-width", (d) -> if d.selected then 3 else 1)
+        @blocks.transition()
+            .duration(600)
+            .ease("cubic-in-out")
+            .attr("transform", (d) => "translate(" + @scale.x(d.y) + "," + @scale.y(d.x) + ")")
+
+        @blocks.select(".block")
+            .style("fill", (d) -> if d.selected then obj.selected_fill_color() else obj.block_color(d))
+            .style("fill-opacity", (d) ->
+                if d.selected
+                    d.fill_opacity = 0.8
+                else
+                    d.fill_opacity = 0.5
+                return d.fill_opacity
+            )
+            .style("stroke-width", (d) ->
+                if d.selected
+                    d.stroke_width = 4
+                else
+                    d.stroke_width = 1
+                return d.stroke_width
+            )
