@@ -68,6 +68,16 @@ class @PlacementGrid
         @scale.y.domain([@dims.y.min, @dims.y.max + 1]).range([@width, 0])
         return data
 
+    cell_width: () -> @scale.x(1)
+    # Scale the height of each cell to the grid vertical height divided by the
+    # number of blocks in the y-dimension.  Note that since `@scale.y` is
+    # inverted*, we use `@dims.y.max` rather than 1 as the arg to `@scale.y` to
+    # get the height of one cell.
+    #
+    # *see `translate_block_positions`
+    cell_height: () -> @scale.y(@dims.y.max)
+    block_width: () -> 0.8 * @cell_width()
+    block_height: () -> 0.8 * @cell_height()
     block_color: (d) ->
         result = if d.io then @io_fill_color else d.fill_color
         return result
@@ -114,16 +124,22 @@ class @PlacementGrid
         @update_cells()
 
     update_cells: () ->
+        # Each tag of class `cell` is an SVG group tag.  Each such group
+        # contains an SVG rectangle tag, corresponding to a block in the
+        # placement grid.
         @blocks = @grid.selectAll(".cell")
             .data(@block_positions, (d) -> d.block_id)
         obj = @
         @blocks.enter()
+            # For block ids that were not previously included in the bound data
+            # set, create an SVG group and append an SVG rectangle to it for
+            # the block
             .append("svg:g")
             .attr("class", "cell")
             .append("svg:rect")
             .attr("class", "block")
-            .attr("width", @scale.x(1))
-            .attr("height", @scale.y(@dims.y.max))
+            .attr("width", @block_width())
+            .attr("height", @block_height())
             .on('click', (d) ->
                 # Toggle selected state of clicked block
                 d.selected = !d.selected
@@ -154,12 +170,18 @@ class @PlacementGrid
             .style("stroke", '#555')
             .style('fill-opacity', (d) -> d.fill_opacity)
             .style('stroke-width', (d) -> d.stroke_width)
+            # Center block within cell
+            .attr("transform", (d) =>
+                x_padding = (@cell_width() - @block_width()) / 2
+                y_padding = (@cell_height() - @block_height()) / 2
+                "translate(" + x_padding + "," + y_padding + ")")
         @blocks.exit().remove()
 
         @blocks.transition()
             .duration(600)
             .ease("cubic-in-out")
-            .attr("transform", (d) => "translate(" + @scale.x(d.y) + "," + @scale.y(d.x) + ")")
+            .attr("transform", (d) =>
+                "translate(" + @scale.x(d.y) + "," + @scale.y(d.x) + ")")
 
         @blocks.select(".block")
             .style("fill", (d) -> if d.selected then obj.selected_fill_color() else obj.block_color(d))

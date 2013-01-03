@@ -62,7 +62,7 @@
 <script type="text/coffeescript" src="/dist/echo_controller.coffee"></script>
 <script type="text/coffeescript">
     @context = new nullmq.Context('ws://maeby.fobel.net:9000')
-    @placement_grid = new PlacementGrid("#chart", 600)
+    @placement_grid = new PlacementGrid("#chart", 450)
 
     @placement_controller = new PlacementController(@context, 'tcp://localhost:9003', 'tcp://localhost:9050')
     $("#id_clear_selection").click(() =>
