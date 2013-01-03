@@ -53,6 +53,7 @@ class @PlacementGrid
                     item.moved = false
                 else
                     item.moved = true
+                item.selected = old_item.selected
             data.push(item)
             @dims.x.max = Math.max(item.x, @dims.x.max)
             @dims.x.min = Math.min(item.x, @dims.x.min)
@@ -176,3 +177,33 @@ class @PlacementGrid
                     d.stroke_width = 1
                 return d.stroke_width
             )
+
+    highlight_area_range: (a) ->
+        area_range_group = d3.select("#chart").select("svg").append("svg:g")
+            .attr("class", "area_range_group")
+            .style("opacity", 0.75)
+            .append("svg:rect")
+            .attr("class", "area_range_outline")
+            .attr("width", a.second_extent * @scale.x(1))
+            .attr("height", a.first_extent * @scale.y(@dims.y.max))
+            .on('mouseover', (d) ->
+                d3.select(this).style("stroke-width", 10)
+            )
+            .on('mouseout', (d) ->
+                d3.select(this).style("stroke-width", 7)
+            )
+            .style("fill", "none")
+            .style("stroke", @colors((a.first_index * a.second_index) % 10))
+            .style("stroke-width", 7)
+
+        area_range_group.transition()
+            .duration(400)
+            .ease("cubic-in-out")
+            .attr("transform", "translate(" + @scale.x(a.second_index) + ", " + @scale.y(a.first_index + a.first_extent - 1) + ")")
+
+
+class @AreaRange
+    constructor: (@first_index, @second_index, @first_extent, @second_extent) ->
+
+    contains: (point) ->
+        return (point.x >= @first_index and point.x < @first_index + @first_extent and point.y >= @second_index and point.y < @second_index + @second_extent)
