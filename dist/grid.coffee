@@ -30,6 +30,37 @@ class @PlacementGrid
         @batch_color_num = 2
         @batch_styles = new Array()
         @batch_i = 0
+        @swap_infos = new Array()
+
+    connect: d3.svg.diagonal()
+    set_swap_links: (swap_info_dict) ->
+        console.log('set_swap_links')
+        console.log(JSON.stringify(swap_info_dict))
+        @swap_infos = (swap_info for swap_id,swap_info of swap_info_dict)
+        swap_links = @grid.selectAll(".link").data(@swap_infos)
+        swap_links.enter()
+            .append("svg:path")
+            .attr("class", "link")
+            .style("fill", "none")
+            .style("pointer-events", "none")
+            .style("stroke", "none")
+            .style("stroke-width", 1.5)
+            .style("opacity", 0)
+        swap_links.exit().remove()
+
+        swap_links.transition()
+            .duration(200)
+            .ease("cubic-in-out")
+            .style("opacity", (d) -> if d.swap_result.swap_accepted then 0.75 else 0.5)
+            .style("stroke", (d) -> if d.swap_result.swap_accepted then "#000" else "#666")
+            .attr("d", (d) =>
+                [from_x, from_y] = d.swap_config.coords.from_
+                from_coords = x: from_x, y: from_y
+                [from_x, from_y] = d.swap_config.coords.to
+                to_coords = x: from_x, y: from_y
+                @connect.source(@cell_center(from_coords))
+                    .target(@cell_center(to_coords))()
+            )
 
     selected_fill_color: () -> @colors(@selected_fill_color_num)
 
@@ -55,10 +86,10 @@ class @PlacementGrid
                     item.moved = true
                 item.selected = old_item.selected
             data.push(item)
-            @dims.x.max = Math.max(item.x, @dims.x.max)
-            @dims.x.min = Math.min(item.x, @dims.x.min)
-            @dims.y.max = Math.max(item.y, @dims.y.max)
-            @dims.y.min = Math.min(item.y, @dims.y.min)
+        @dims.x.max = Math.max(d3.max(item.x for item in data), @dims.x.max)
+        @dims.x.min = Math.min(d3.min(item.x for item in data), @dims.x.min)
+        @dims.y.max = Math.max(d3.max(item.y for item in data), @dims.y.max)
+        @dims.y.min = Math.min(d3.min(item.y for item in data), @dims.y.min)
         for item in data
             if item.x < @dims.x.min + 1 or item.x > @dims.x.max - 1 or item.y < @dims.y.min + 1 or item.y > @dims.y.max - 1
                 item.io = true
@@ -81,7 +112,10 @@ class @PlacementGrid
     block_color: (d) ->
         result = if d.io then @io_fill_color else d.fill_color
         return result
-
+    cell_position: (d) => x: @scale.x(d.y), y: @scale.y(d.x)
+    cell_center: (d) =>
+        position = @cell_position d
+        x: position.x + 0.5 * @cell_width(), y: position.y + 0.5 * @cell_height()
     clear_selection: () ->
         for block_id,block of @selected_blocks
             block.selected = false
@@ -105,12 +139,11 @@ class @PlacementGrid
         block_objs = @selected_block_values()
         infos = @selected_container.selectAll(".placement_info")
                 .data(block_objs, (d) -> d.block_id)
-        infos.html((d) -> placement_grid.template(d))
         infos.enter()
                 .append("div")
                 .attr("class", "placement_info")
-                .html((d) -> placement_grid.template(d))
         infos.exit().remove()
+        infos.html((d) -> placement_grid.template(d))
 
     set_data: (raw_block_positions) ->
         @batch_i = @batch_block_positions.length
@@ -181,7 +214,8 @@ class @PlacementGrid
             .duration(600)
             .ease("cubic-in-out")
             .attr("transform", (d) =>
-                "translate(" + @scale.x(d.y) + "," + @scale.y(d.x) + ")")
+                position = @cell_position d
+                "translate(" + position.x + "," + position.y + ")")
 
         @blocks.select(".block")
             .style("fill", (d) -> if d.selected then obj.selected_fill_color() else obj.block_color(d))

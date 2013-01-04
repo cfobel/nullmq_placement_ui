@@ -87,7 +87,11 @@
     iter_and_update = (iter_count) =>
         console.log(iter_count, placement_controller)
         update_grid = (value) =>
-            console.log(value)
+            try
+                swap_info_dict = placement_controller.current_swap_context().participated
+            catch error
+                swap_info_dict = {}
+            placement_grid.set_swap_links(swap_info_dict)
             placement_controller.do_request({"command": "get_block_positions"}, (block_positions) ->
                     placement_grid.set_data(block_positions.result)
                 )
