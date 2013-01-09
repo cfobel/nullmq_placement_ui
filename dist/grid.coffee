@@ -1,9 +1,12 @@
 class @PlacementGrid
     constructor: (@id, @width) ->
         @grid = d3.select(@id)
-                        .append("svg")
+                    .append("svg")
                         .attr("width", 1.1 * @width)
                         .attr("height", 1.1 * @width)
+                    .append('svg:g')
+                        .call(d3.behavior.zoom().on("zoom", () => @grid.attr("transform", "translate(" + d3.event.translate + ")" + " scale(" + d3.event.scale + ")")))
+                    .append('svg:g')
                         .attr("class", "chart")
         @scale =
             x: d3.scale.linear()
@@ -33,10 +36,10 @@ class @PlacementGrid
         @swap_infos = new Array()
 
     connect: d3.svg.diagonal()
-    set_swap_links: (swap_info_dict) ->
+    set_swap_links: (swap_infos) ->
         console.log('set_swap_links')
-        console.log(JSON.stringify(swap_info_dict))
-        @swap_infos = (swap_info for swap_id,swap_info of swap_info_dict)
+        console.log(JSON.stringify(swap_infos))
+        @swap_infos = swap_infos
         swap_links = @grid.selectAll(".link").data(@swap_infos)
         swap_links.enter()
             .append("svg:path")
@@ -51,8 +54,22 @@ class @PlacementGrid
         swap_links.transition()
             .duration(200)
             .ease("cubic-in-out")
-            .style("opacity", (d) -> if d.swap_result.swap_accepted then 0.75 else 0.5)
-            .style("stroke", (d) -> if d.swap_result.swap_accepted then "#000" else "#666")
+            .style("opacity", (d) ->
+                if d.swap_result.swap_accepted
+                    return 0.9
+                else if not d.swap_config.participate
+                    return 0.25
+                else
+                    return 0.35
+            )
+            .style("stroke", (d) ->
+                if d.swap_result.swap_accepted
+                    return "#060"
+                else if not d.swap_config.participate
+                    return "#D00"
+                else
+                    return "#FFB300"
+            )
             .attr("d", (d) =>
                 [from_x, from_y] = d.swap_config.coords.from_
                 from_coords = x: from_x, y: from_y
@@ -235,7 +252,7 @@ class @PlacementGrid
             )
 
     highlight_area_range: (a) ->
-        area_range_group = d3.select("#chart").select("svg").append("svg:g")
+        area_range_group = d3.select(".chart").append("svg:g")
             .attr("class", "area_range_group")
             .style("opacity", 0.75)
             .append("svg:rect")

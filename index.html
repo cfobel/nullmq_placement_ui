@@ -62,7 +62,10 @@
 <script type="text/coffeescript" src="/dist/echo_controller.coffee"></script>
 <script type="text/coffeescript">
     @context = new nullmq.Context('ws://maeby.fobel.net:9000')
-    @placement_grid = new PlacementGrid("#chart", 450)
+    width = d3.select("#chart").style("width")
+    if width.substr(width.length - 2, width.length) == "px"
+        width = eval(width.substr(0, width.length - 2))
+    @placement_grid = new PlacementGrid("#chart", 0.75 * width)
 
     @placement_controller = new PlacementController(@context, 'tcp://localhost:9003', 'tcp://localhost:9050')
     $("#id_clear_selection").click(() =>
@@ -88,10 +91,10 @@
         console.log(iter_count, placement_controller)
         update_grid = (value) =>
             try
-                swap_info_dict = placement_controller.current_swap_context().participated
+                swap_infos = placement_controller.current_swap_context().all
             catch error
-                swap_info_dict = {}
-            placement_grid.set_swap_links(swap_info_dict)
+                swap_infos = []
+            placement_grid.set_swap_links(swap_infos)
             placement_controller.do_request({"command": "get_block_positions"}, (block_positions) ->
                     placement_grid.set_data(block_positions.result)
                 )
