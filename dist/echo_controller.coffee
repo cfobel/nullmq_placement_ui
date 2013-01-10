@@ -58,20 +58,24 @@ class @PlacementController extends @EchoJsonController
         if not (block_rect == null)
             block_rect.style("fill-opacity", 1.0).style("stroke-width", 6)
 
-    highlight_block_swaps: (block_id, from_rect) =>
-        @apply_to_block_swaps(block_id, from_rect, @highlight_block)
+    highlight_block_swaps: (block_id) =>
+        @apply_to_block_swaps(block_id, @highlight_block)
 
-    unhighlight_block_swaps: (block_id, from_rect) =>
-        @apply_to_block_swaps(block_id, from_rect, @unhighlight_block)
+    unhighlight_block_swaps: (block_id) =>
+        @apply_to_block_swaps(block_id, @unhighlight_block)
 
-    apply_to_block_swaps: (block_id, from_rect, callback) =>
+    apply_to_block_swaps: (block_id, callback) =>
         # Apply the callback function to each block involved in any swap where
         # either the `from` or `to` block ID is `block_id`.
+        for block in @connected_blocks(block_id)
+            callback(block)
+
+    connected_blocks: (block_id) =>
         try
             c = this.current_swap_context()
         catch e
             if e.code and e.code == -100
-                return
+                return []
             else
                 throw e
 
@@ -89,11 +93,10 @@ class @PlacementController extends @EchoJsonController
             for swap_info in c.by_to_block_id[block_id]
                 block = @placement_grid.block_positions[swap_info.swap_config.ids.from_]
                 connected_blocks.push(block)
-        for block in connected_blocks
-            callback(block)
+        return connected_blocks
 
     block_mouseover: (d, i, from_rect) =>
-        @highlight_block_swaps(i, from_rect)
+        @highlight_block_swaps(i)
 
         # Update current block info table
         current_info = d3.select("#placement_info_current")
