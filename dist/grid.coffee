@@ -55,6 +55,21 @@ class @PlacementGrid
         @batch_styles = new Array()
         @batch_i = 0
         @swap_infos = new Array()
+        @block_mouseover = (d, i, rect) ->
+                rect.style("fill-opacity", 1.0)
+                    .style("stroke-width", 6)
+                # Update current block info table
+                current_info = d3.select("#placement_info_current")
+                        .selectAll(".placement_info")
+                        .data([d], (d) -> d.block_id)
+                current_info.enter()
+                        .append("div")
+                        .attr("class", "placement_info")
+                        .html((d) -> placement_grid.template(d))
+                current_info.exit().remove()
+        @block_mouseout = (d, i, rect) ->
+                rect.style("fill-opacity", d.fill_opacity)
+                    .style("stroke-width", d.stroke_width)
 
     connect: d3.svg.diagonal()
     set_swap_links: (swap_infos) ->
@@ -220,24 +235,11 @@ class @PlacementGrid
                 else
                     obj.deselect_block(d)
             )
-            .on('mouseout', (d) ->
-                d3.select(this)
-                    .style("fill-opacity", d.fill_opacity)
-                    .style("stroke-width", d.stroke_width)
+            .on('mouseout', (d, i) =>
+                @block_mouseout(d, i, d3.select("#id_block_" + i))
             )
-            .on('mouseover', (d) ->
-                d3.select(this)
-                    .style("fill-opacity", 1.0)
-                    .style("stroke-width", 6)
-                # Update current block info table
-                current_info = d3.select("#placement_info_current")
-                        .selectAll(".placement_info")
-                        .data([d], (d) -> d.block_id)
-                current_info.enter()
-                        .append("div")
-                        .attr("class", "placement_info")
-                        .html((d) -> placement_grid.template(d))
-                current_info.exit().remove()
+            .on('mouseover', (d, i) =>
+                @block_mouseover(d, i, d3.select("#id_block_" + i))
             )
             .style("stroke", '#555')
             .style('fill-opacity', (d) -> d.fill_opacity)
