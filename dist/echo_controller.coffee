@@ -44,7 +44,29 @@ class @PlacementController extends @EchoJsonController
             'by_from_block_id': {},
             'by_to_block_id': {},
         }
-    block_mouseover: (d, i, from_rect) =>
+
+    unhighlight_block: (block) =>
+        block_rect_id = "#id_block_" + block.block_id
+        block_rect = d3.select(block_rect_id)
+        if not (block_rect == null)
+            block_rect.style("fill-opacity", block.fill_opacity)
+                        .style("stroke-width", block.stroke_width)
+
+    highlight_block: (block) =>
+        block_rect_id = "#id_block_" + block.block_id
+        block_rect = d3.select(block_rect_id)
+        if not (block_rect == null)
+            block_rect.style("fill-opacity", 1.0).style("stroke-width", 6)
+
+    highlight_block_swaps: (block_id, from_rect) =>
+        @apply_to_block_swaps(block_id, from_rect, @highlight_block)
+
+    unhighlight_block_swaps: (block_id, from_rect) =>
+        @apply_to_block_swaps(block_id, from_rect, @unhighlight_block)
+
+    apply_to_block_swaps: (block_id, from_rect, callback) =>
+        # Apply the callback function to each block involved in any swap where
+        # either the `from` or `to` block ID is `block_id`.
         try
             c = this.current_swap_context()
         catch e
@@ -52,24 +74,27 @@ class @PlacementController extends @EchoJsonController
                 return
             else
                 throw e
-        if `i in c.by_from_block_id`
-            swap_info = c.by_from_block_id[i]
-            @to_rect = d3.select("#id_block_" + swap_info.swap_config.ids.to)
-        else if `i in c.by_to_block_id`
-            swap_info = c.by_to_block_id[i]
-            block_id = "#id_block_" + swap_info.swap_config.ids.from_
-            @to_rect = d3.select(block_id)
-        if not (@to_rect == null)
-            console.log("to_rect is something")
-            # This block was involved in the last set of swaps
-            @_last_data =
-                block_id: i
-                from_d: d
-                from_rect: from_rect
-                swap_info: swap_info
-            console.log(@_last_data)
-            @to_rect.style("fill-opacity", 1.0).style("stroke-width", 6)
-        from_rect.style("fill-opacity", 1.0).style("stroke-width", 6)
+
+        # Highlight block under cursor
+        connected_blocks = [@placement_grid.block_positions[block_id]]
+        if block_id of c.by_from_block_id
+            # Highlight any blocks that involve the current block as the `from`
+            # block id
+            for swap_info in c.by_from_block_id[block_id]
+                block = @placement_grid.block_positions[swap_info.swap_config.ids.to]
+                connected_blocks.push(block)
+        else if block_id of c.by_to_block_id
+            # Highlight any blocks that involve the current block as the `to`
+            # block id
+            for swap_info in c.by_to_block_id[block_id]
+                block = @placement_grid.block_positions[swap_info.swap_config.ids.from_]
+                connected_blocks.push(block)
+        for block in connected_blocks
+            callback(block)
+
+    block_mouseover: (d, i, from_rect) =>
+        @highlight_block_swaps(i, from_rect)
+
         # Update current block info table
         current_info = d3.select("#placement_info_current")
                 .selectAll(".placement_info")
@@ -79,13 +104,10 @@ class @PlacementController extends @EchoJsonController
                 .attr("class", "placement_info")
                 .html((d) -> placement_grid.template(d))
         current_info.exit().remove()
+
     block_mouseout: (d, i, from_rect) =>
-        from_rect.style("fill-opacity", d.fill_opacity)
-            .style("stroke-width", d.stroke_width)
-        if not (@to_rect == null)
-            @to_rect.style("fill-opacity", d.fill_opacity)
-                        .style("stroke-width", d.stroke_width)
-            @to_rect = null
+        @unhighlight_block_swaps(i, from_rect)
+
     constructor: (@placement_grid, @context, @action_uri, @swap_uri) ->
         @swap_contexts = new Array()
         super @context, @action_uri
@@ -124,9 +146,19 @@ class @PlacementController extends @EchoJsonController
         swap_context.all.push(swap_info)
         if swap_info.swap_config.participate
             if swap_info.swap_config.ids.from_ >= 0
-                swap_context.by_from_block_id[swap_info.swap_config.ids.from_] = swap_info
+                if swap_info.swap_config.ids.from_ of swap_context.by_from_block_id
+                    block_swap_infos = swap_context.by_from_block_id[swap_info.swap_config.ids.from_]
+                    block_swap_infos.push(swap_info)
+                else
+                    block_swap_infos = [swap_info]
+                    swap_context.by_from_block_id[swap_info.swap_config.ids.from_] = block_swap_infos
             if swap_info.swap_config.ids.to >= 0
-                swap_context.by_to_block_id[swap_info.swap_config.ids.to] = swap_info
+                if swap_info.swap_config.ids.to of swap_context.by_to_block_id
+                    block_swap_infos = swap_context.by_to_block_id[swap_info.swap_config.ids.to]
+                    block_swap_infos.push(swap_info)
+                else
+                    block_swap_infos = [swap_info]
+                    swap_context.by_to_block_id[swap_info.swap_config.ids.to] = block_swap_infos
             swap_context.participated[swap_info.swap_i] = swap_info
             if swap_info.swap_result.swap_accepted
                 swap_context.accepted[swap_info.swap_i] = swap_info
