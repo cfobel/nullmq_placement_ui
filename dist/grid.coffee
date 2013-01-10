@@ -1,13 +1,34 @@
 class @PlacementGrid
+    update_zoom: (translate, scale) =>
+        #console.log([translate, scale])
+        transform_str = "translate(" + @zoom.translate() + ")" + " scale(" +
+            @zoom.scale() + ")"
+        @grid.attr("transform", transform_str)
+    set_zoom_location: () =>
+        transform_str = "translate(" + @zoom.translate() + ")" + " scale(" +
+            @zoom.scale() + ")"
+        window.location.hash = transform_str
     constructor: (@id, @width) ->
-        @grid = d3.select(@id)
+        @zoom = d3.behavior.zoom()
+        @grid = d3.select("#" + @id)
                     .append("svg")
                         .attr("width", 1.1 * @width)
                         .attr("height", 1.1 * @width)
                     .append('svg:g')
-                        .call(d3.behavior.zoom().on("zoom", () => @grid.attr("transform", "translate(" + d3.event.translate + ")" + " scale(" + d3.event.scale + ")")))
+                        .attr("id", @id + "_transform_group")
+                        .call(@zoom.on("zoom", () => @update_zoom(d3.event.translate, d3.event.scale)))
                     .append('svg:g')
                         .attr("class", "chart")
+        zoom = window.location.hash
+        result = /#translate\((-?\d+\.\d+),(-?\d+\.\d+)\)\s+scale\((-?\d+\.\d+)\)/.exec(zoom)
+        if result and result.length == 4
+            [translate_x, translate_y, scale] = result[1..]
+            console.log(result)
+            @zoom.scale(scale)
+            @zoom.translate([translate_x, translate_y])
+            @update_zoom()
+        else
+            console.log(zoom)
         @scale =
             x: d3.scale.linear()
             y: d3.scale.linear()
@@ -190,6 +211,7 @@ class @PlacementGrid
             .attr("class", "block")
             .attr("width", @block_width())
             .attr("height", @block_height())
+            .attr("id", (d) -> "id_block_" + d.block_id)
             .on('click', (d) ->
                 # Toggle selected state of clicked block
                 d.selected = !d.selected
