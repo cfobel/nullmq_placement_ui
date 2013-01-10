@@ -58,8 +58,8 @@ class @PlacementGrid
 
     connect: d3.svg.diagonal()
     set_swap_links: (swap_infos) ->
-        console.log('set_swap_links')
-        console.log(JSON.stringify(swap_infos))
+        #console.log('set_swap_links')
+        #console.log(JSON.stringify(swap_infos))
         @swap_infos = swap_infos
         swap_links = @grid.selectAll(".link").data(@swap_infos)
         swap_links.enter()
