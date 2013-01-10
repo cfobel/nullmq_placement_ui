@@ -1,4 +1,4 @@
-class @EchoController
+class EchoController
     constructor: (@context, @uri) ->
         @echo_fe = @context.socket(nullmq.REQ)
         @echo_fe.connect(@uri)
@@ -22,7 +22,7 @@ class @EchoController
             alert(error)
 
 
-class @EchoJsonController extends @EchoController
+class EchoJsonController extends EchoController
     serialize: (javascript_obj) -> JSON.stringify(javascript_obj)
 
     deserialize: (json_string) ->
@@ -34,8 +34,20 @@ class @EchoJsonController extends @EchoController
         return value
 
 
-class @PlacementController extends @EchoJsonController
-    get_swap_context: () -> {
+class PlacementController extends EchoJsonController
+    constructor: (@placement_grid, @context, @action_uri, @swap_uri) ->
+        @swap_contexts = new Array()
+        super @context, @action_uri
+        @swap_fe = @context.socket(nullmq.SUB)
+        @swap_fe.connect(@swap_uri)
+        @swap_fe.setsockopt(nullmq.SUBSCRIBE, "")
+        @swap_fe.recvall(@process_swap)
+        @initialized = false
+        @placement_grid.block_mouseover = @block_mouseover
+        @placement_grid.block_mouseout = @block_mouseout
+        @to_rect = null
+
+    swap_context: () -> {
             'all': new Array()
             'participated': {},
             'not_participated': {},
@@ -111,22 +123,12 @@ class @PlacementController extends @EchoJsonController
     block_mouseout: (d, i, from_rect) =>
         @unhighlight_block_swaps(i, from_rect)
 
-    constructor: (@placement_grid, @context, @action_uri, @swap_uri) ->
-        @swap_contexts = new Array()
-        super @context, @action_uri
-        @swap_fe = @context.socket(nullmq.SUB)
-        @swap_fe.connect(@swap_uri)
-        @swap_fe.setsockopt(nullmq.SUBSCRIBE, "")
-        @swap_fe.recvall(@process_swap)
-        @initialized = false
-        @placement_grid.block_mouseover = @block_mouseover
-        @placement_grid.block_mouseout = @block_mouseout
-        @to_rect = null
     initialize: (callback) ->
         if not @initialized
             console.log("initialize")
             @do_request({"command": "initialize", "kwargs": {"depth": 2}}, callback)
             @initialized = true
+
     _iterate_count: 1
     _iterate_i: 0
     _iterate_continue: (on_recv) ->
@@ -136,6 +138,7 @@ class @PlacementController extends @EchoJsonController
                 @_iterate_continue(on_recv))
         else
             @do_request({"command": "iter.next"}, on_recv)
+
     current_swap_context: () ->
         if @swap_contexts <= 0
             error = 
@@ -143,6 +146,7 @@ class @PlacementController extends @EchoJsonController
                 code: -100
             throw error
         return @swap_contexts[@swap_contexts.length - 1]
+
     process_swap: (message) =>
         swap_context = @current_swap_context()
         swap_info = @deserialize(message)
@@ -169,10 +173,15 @@ class @PlacementController extends @EchoJsonController
                 swap_context.skipped[swap_info.swap_i] = swap_info
         else
             swap_context.not_participated[swap_info.swap_i] = swap_info
+
     iterate_swap_eval: (on_recv, count) ->
         if count == undefined
             count = 1
         @_iterate_count = count
         @_iterate_i = 0
-        @swap_contexts.push(@get_swap_context())
+        @swap_contexts.push(@swap_context())
         @_iterate_continue(on_recv)
+
+@EchoController = EchoController
+@EchoJsonController = EchoJsonController
+@PlacementController = PlacementController

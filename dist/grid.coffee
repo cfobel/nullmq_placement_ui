@@ -1,4 +1,4 @@
-class @PlacementGrid
+class PlacementGrid
     update_zoom: (translate, scale) =>
         #console.log([translate, scale])
         transform_str = "translate(" + @zoom.translate() + ")" + " scale(" +
@@ -299,8 +299,12 @@ class @PlacementGrid
             .attr("transform", "translate(" + @scale.x(a.second_index) + ", " + @scale.y(a.first_index + a.first_extent - 1) + ")")
 
 
-class @AreaRange
+class AreaRange
     constructor: (@first_index, @second_index, @first_extent, @second_extent) ->
 
     contains: (point) ->
         return (point.x >= @first_index and point.x < @first_index + @first_extent and point.y >= @second_index and point.y < @second_index + @second_extent)
+
+
+@PlacementGrid = PlacementGrid
+@AreaRange = AreaRange
