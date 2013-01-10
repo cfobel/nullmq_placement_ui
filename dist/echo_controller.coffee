@@ -47,15 +47,15 @@ class PlacementController extends EchoJsonController
         @placement_grid.block_mouseout = @block_mouseout
         @to_rect = null
 
-    swap_context: () -> {
-            'all': new Array()
-            'participated': {},
-            'not_participated': {},
-            'accepted': {},
-            'skipped': {},
-            'by_from_block_id': {},
-            'by_to_block_id': {},
-        }
+    swap_context: () ->
+            all: new Array()
+            participated: {},
+            not_participated: {},
+            accepted: {},
+            skipped: {},
+            by_from_block_id: {},
+            by_to_block_id: {},
+            block_positions: @placement_grid.block_positions
 
     unhighlight_block: (block) =>
         block_rect_id = "#id_block_" + block.block_id
@@ -181,6 +181,37 @@ class PlacementController extends EchoJsonController
         @_iterate_i = 0
         @swap_contexts.push(@swap_context())
         @_iterate_continue(on_recv)
+
+    iterate_and_update: (iter_count) =>
+        update_grid = (value) =>
+            try
+                swap_context = @current_swap_context()
+                console.log(["swap_context", swap_context])
+                @placement_grid.set_swap_links(swap_context)
+                # Make a copy of the current block positions and update the new
+                # copy to reflect the new positions of blocks involved in accepted
+                # swaps.
+                block_positions = $.extend(true, [], @placement_grid.block_positions)
+                for swap_i,swap_info of swap_context.accepted
+                    from_d = block_positions[swap_info.swap_config.ids.from_]
+                    [from_d.x, from_d.y] = swap_info.swap_config.coords.to
+                    to_d = block_positions[swap_info.swap_config.ids.to]
+                    [to_d.x, to_d.y] = swap_info.swap_config.coords.from_
+                    console.log(["accepted swap", from_d, to_d])
+                raw_block_positions = []
+                for d in block_positions
+                    raw_block_positions.push([d.x, d.y, d.z])
+                for block, i in block_positions
+                    old_d = @placement_grid.block_positions[i]
+                    new_array = raw_block_positions[i]
+                    if old_d.x != new_array[0] or old_d.y != new_array[1] or old_d.z != new_array[2]
+                        console.log(["new block position", i, old_d, new_array])
+                do_task = () => @placement_grid.set_raw_block_positions(raw_block_positions)
+                setTimeout(do_task, 250)
+            catch error
+                # There is no current swap context, so do nothing
+                swap_context = null
+        @iterate_swap_eval(update_grid, iter_count)
 
 @EchoController = EchoController
 @EchoJsonController = EchoJsonController

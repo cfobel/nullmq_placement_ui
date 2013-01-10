@@ -75,7 +75,7 @@
     )
     @load_placement = () ->
         placement_controller.do_request({"command": "get_block_positions"}, (value) ->
-            placement_grid.set_data(value.result)
+            placement_grid.set_raw_block_positions(value.result)
             placement_controller.do_request({"command": "config"}, (response) ->
                     config = response.result
                     for a, i in config.area_ranges
@@ -87,24 +87,11 @@
 
     placement_controller.initialize(load_placement)
 
-    iter_and_update = (iter_count) =>
-        console.log(iter_count, placement_controller)
-        update_grid = (value) =>
-            try
-                swap_infos = placement_controller.current_swap_context().all
-            catch error
-                swap_infos = []
-            placement_grid.set_swap_links(swap_infos)
-            placement_controller.do_request({"command": "get_block_positions"}, (block_positions) ->
-                    placement_grid.set_data(block_positions.result)
-                )
-        placement_controller.iterate_swap_eval(update_grid, iter_count)
-
     $("#id_load_placement").click(() =>
         @load_placement()
     )
 
-    Mousetrap.bind('space', () -> iter_and_update(1))
+    Mousetrap.bind('space', () -> placement_controller.iterate_and_update(1))
     Mousetrap.bind('l', load_placement);
     Mousetrap.bind('z', placement_grid.set_zoom_location);
 </script>

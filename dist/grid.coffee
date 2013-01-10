@@ -72,10 +72,8 @@ class PlacementGrid
                     .style("stroke-width", d.stroke_width)
 
     connect: d3.svg.diagonal()
-    set_swap_links: (swap_infos) ->
-        #console.log('set_swap_links')
-        #console.log(JSON.stringify(swap_infos))
-        @swap_infos = swap_infos
+    set_swap_links: (swap_context) ->
+        @swap_infos = swap_context.all
         swap_links = @grid.selectAll(".link").data(@swap_infos)
         swap_links.enter()
             .append("svg:path")
@@ -114,10 +112,13 @@ class PlacementGrid
                 @connect.source(@cell_center(from_coords))
                     .target(@cell_center(to_coords))()
             )
+        console.log(["current block positions", @block_positions])
 
     selected_fill_color: () -> @colors(@selected_fill_color_num)
 
     translate_block_positions: (block_positions) ->
+        console.log(["translate_block_positions", block_positions])
+        @_last_translated_positions = block_positions
         data = new Array()
         for position, i in block_positions
             item =
@@ -188,7 +189,7 @@ class PlacementGrid
 
     selected_block_values: () -> (block for block_id,block of @selected_blocks)
 
-    update_block_info: () ->
+    update_selected_block_info: () ->
         block_objs = @selected_block_values()
         infos = @selected_container.selectAll(".placement_info")
                 .data(block_objs, (d) -> d.block_id)
@@ -198,16 +199,20 @@ class PlacementGrid
         infos.exit().remove()
         infos.html((d) -> placement_grid.template(d))
 
-    set_data: (raw_block_positions) ->
+    set_raw_block_positions: (raw_block_positions) ->
+        @batch_styles.push({"fill_color": @colors(@batch_color_num)})
+        @set_block_positions(@translate_block_positions(raw_block_positions))
+
+    set_block_positions: (block_positions) ->
         @batch_i = @batch_block_positions.length
         console.log("block_positions", @batch_block_positions)
-        @batch_styles.push({"fill_color": @colors(@batch_color_num)})
         @batch_color_num += 3
-        console.log("batch_styles", @batch_styles)
-        @block_positions = @translate_block_positions(raw_block_positions)
+        @block_positions = block_positions
         @batch_block_positions.push(@block_positions)
-        @update_block_info()
+        @update_selected_block_info()
         @update_cells()
+        console.log("batch_styles", @batch_styles)
+        @batch_styles.push({"fill_color": @colors(@batch_color_num)})
 
     update_cells: () ->
         # Each tag of class `cell` is an SVG group tag.  Each such group
