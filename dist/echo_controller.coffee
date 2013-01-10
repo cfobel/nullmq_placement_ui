@@ -44,6 +44,48 @@ class @PlacementController extends @EchoJsonController
             'by_from_block_id': {},
             'by_to_block_id': {},
         }
+    block_mouseover: (d, i, from_rect) =>
+        try
+            c = this.current_swap_context()
+        catch e
+            if e.code and e.code == -100
+                return
+            else
+                throw e
+        if `i in c.by_from_block_id`
+            swap_info = c.by_from_block_id[i]
+            @to_rect = d3.select("#id_block_" + swap_info.swap_config.ids.to)
+        else if `i in c.by_to_block_id`
+            swap_info = c.by_to_block_id[i]
+            block_id = "#id_block_" + swap_info.swap_config.ids.from_
+            @to_rect = d3.select(block_id)
+        if not (@to_rect == null)
+            console.log("to_rect is something")
+            # This block was involved in the last set of swaps
+            @_last_data =
+                block_id: i
+                from_d: d
+                from_rect: from_rect
+                swap_info: swap_info
+            console.log(@_last_data)
+            @to_rect.style("fill-opacity", 1.0).style("stroke-width", 6)
+        from_rect.style("fill-opacity", 1.0).style("stroke-width", 6)
+        # Update current block info table
+        current_info = d3.select("#placement_info_current")
+                .selectAll(".placement_info")
+                .data([d], (d) -> d.block_id)
+        current_info.enter()
+                .append("div")
+                .attr("class", "placement_info")
+                .html((d) -> placement_grid.template(d))
+        current_info.exit().remove()
+    block_mouseout: (d, i, from_rect) =>
+        from_rect.style("fill-opacity", d.fill_opacity)
+            .style("stroke-width", d.stroke_width)
+        if not (@to_rect == null)
+            @to_rect.style("fill-opacity", d.fill_opacity)
+                        .style("stroke-width", d.stroke_width)
+            @to_rect = null
     constructor: (@placement_grid, @context, @action_uri, @swap_uri) ->
         @swap_contexts = new Array()
         super @context, @action_uri
@@ -52,6 +94,9 @@ class @PlacementController extends @EchoJsonController
         @swap_fe.setsockopt(nullmq.SUBSCRIBE, "")
         @swap_fe.recvall(@process_swap)
         @initialized = false
+        @placement_grid.block_mouseover = @block_mouseover
+        @placement_grid.block_mouseout = @block_mouseout
+        @to_rect = null
     initialize: (callback) ->
         if not @initialized
             console.log("initialize")
