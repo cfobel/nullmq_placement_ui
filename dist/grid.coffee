@@ -1,13 +1,25 @@
+class Block
+    constructor: (@controller, @grid, @id, @x=null, @y=null) ->
+    rect_id: () => "id_block_" + @id
+    rect: () => d3.select("#" + @rect_id())
+    mouseover: () =>
+        @rect().style("fill-opacity", 1.0)
+            .style("stroke-width", 6)
+        # Update current block info table
+        current_info = d3.select("#placement_info_current")
+                .selectAll(".placement_info")
+                .data([this], (d) -> d.id)
+        current_info.enter()
+                .append("div")
+                .attr("class", "placement_info")
+                .html((d) -> placement_grid.template(d))
+        current_info.exit().remove()
+    mouseout: () =>
+        @rect().style("fill-opacity", d.fill_opacity)
+            .style("stroke-width", d.stroke_width)
+
+
 class PlacementGrid
-    update_zoom: (translate, scale) =>
-        #console.log([translate, scale])
-        transform_str = "translate(" + @zoom.translate() + ")" + " scale(" +
-            @zoom.scale() + ")"
-        @grid.attr("transform", transform_str)
-    set_zoom_location: () =>
-        transform_str = "translate(" + @zoom.translate() + ")" + " scale(" +
-            @zoom.scale() + ")"
-        window.location.hash = transform_str
     constructor: (@id, @width) ->
         @zoom = d3.behavior.zoom()
         @grid = d3.select("#" + @id)
@@ -55,23 +67,17 @@ class PlacementGrid
         @batch_styles = new Array()
         @batch_i = 0
         @swap_infos = new Array()
-        @block_mouseover = (d, i, rect) ->
-                rect.style("fill-opacity", 1.0)
-                    .style("stroke-width", 6)
-                # Update current block info table
-                current_info = d3.select("#placement_info_current")
-                        .selectAll(".placement_info")
-                        .data([d], (d) -> d.block_id)
-                current_info.enter()
-                        .append("div")
-                        .attr("class", "placement_info")
-                        .html((d) -> placement_grid.template(d))
-                current_info.exit().remove()
-        @block_mouseout = (d, i, rect) ->
-                rect.style("fill-opacity", d.fill_opacity)
-                    .style("stroke-width", d.stroke_width)
 
     connect: d3.svg.diagonal()
+    update_zoom: (translate, scale) =>
+        #console.log([translate, scale])
+        transform_str = "translate(" + @zoom.translate() + ")" + " scale(" +
+            @zoom.scale() + ")"
+        @grid.attr("transform", transform_str)
+    set_zoom_location: () =>
+        transform_str = "translate(" + @zoom.translate() + ")" + " scale(" +
+            @zoom.scale() + ")"
+        window.location.hash = transform_str
     set_swap_links: (swap_context) ->
         @swap_infos = swap_context.all
         swap_links = @grid.selectAll(".link").data(@swap_infos)
@@ -218,10 +224,11 @@ class PlacementGrid
         # Each tag of class `cell` is an SVG group tag.  Each such group
         # contains an SVG rectangle tag, corresponding to a block in the
         # placement grid.
-        @blocks = @grid.selectAll(".cell")
+        blocks = @grid.selectAll(".cell")
             .data(@block_positions, (d) -> d.block_id)
         obj = @
-        @blocks.enter()
+
+        blocks.enter()
             # For block ids that were not previously included in the bound data
             # set, create an SVG group and append an SVG rectangle to it for
             # the block
@@ -254,16 +261,16 @@ class PlacementGrid
                 x_padding = (@cell_width() - @block_width()) / 2
                 y_padding = (@cell_height() - @block_height()) / 2
                 "translate(" + x_padding + "," + y_padding + ")")
-        @blocks.exit().remove()
+        blocks.exit().remove()
 
-        @blocks.transition()
+        blocks.transition()
             .duration(600)
             .ease("cubic-in-out")
             .attr("transform", (d) =>
                 position = @cell_position d
                 "translate(" + position.x + "," + position.y + ")")
 
-        @blocks.select(".block")
+        d3.select(".chart").selectAll(".cell").select(".block")
             .style("fill", (d) -> if d.selected then obj.selected_fill_color() else obj.block_color(d))
             .style("fill-opacity", (d) ->
                 if d.selected
@@ -313,3 +320,4 @@ class AreaRange
 
 @PlacementGrid = PlacementGrid
 @AreaRange = AreaRange
+@Block = Block
