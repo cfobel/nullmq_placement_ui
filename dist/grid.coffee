@@ -181,17 +181,17 @@ class PlacementGrid
             block.selected = false
         @selected_blocks = {}
         @update_block_info()
-        @update_cells()
+        @update_cell_formats()
 
     select_block: (d) ->
         @selected_blocks[d.block_id] = d
         @update_block_info()
-        @update_cells()
+        @update_cell_formats()
 
     deselect_block: (d) ->
         delete @selected_blocks[d.block_id]
         @update_block_info()
-        @update_cells()
+        @update_cell_formats()
 
     selected_block_values: () -> (block for block_id,block of @selected_blocks)
 
@@ -216,16 +216,19 @@ class PlacementGrid
         @block_positions = block_positions
         @batch_block_positions.push(@block_positions)
         @update_selected_block_info()
-        @update_cells()
+        @update_cell_data()
+        #@update_cell_formats()
+        @update_cell_positions()
         console.log("batch_styles", @batch_styles)
         @batch_styles.push({"fill_color": @colors(@batch_color_num)})
 
-    update_cells: () ->
+    update_cell_data: () ->
         # Each tag of class `cell` is an SVG group tag.  Each such group
         # contains an SVG rectangle tag, corresponding to a block in the
         # placement grid.
         blocks = @grid.selectAll(".cell")
             .data(@block_positions, (d) -> d.block_id)
+
         obj = @
 
         blocks.enter()
@@ -233,45 +236,54 @@ class PlacementGrid
             # set, create an SVG group and append an SVG rectangle to it for
             # the block
             .append("svg:g")
-            .attr("class", "cell")
+                .attr("class", "cell")
             .append("svg:rect")
-            .attr("class", "block")
-            .attr("width", @block_width())
-            .attr("height", @block_height())
-            .attr("id", (d) -> "id_block_" + d.block_id)
-            .on('click', (d) ->
-                # Toggle selected state of clicked block
-                d.selected = !d.selected
-                if d.selected
-                    obj.select_block(d)
-                else
-                    obj.deselect_block(d)
-            )
-            .on('mouseout', (d, i) =>
-                @block_mouseout(d, i, d3.select("#id_block_" + i))
-            )
-            .on('mouseover', (d, i) =>
-                @block_mouseover(d, i, d3.select("#id_block_" + i))
-            )
-            .style("stroke", '#555')
-            .style('fill-opacity', (d) -> d.fill_opacity)
-            .style('stroke-width', (d) -> d.stroke_width)
-            # Center block within cell
-            .attr("transform", (d) =>
-                x_padding = (@cell_width() - @block_width()) / 2
-                y_padding = (@cell_height() - @block_height()) / 2
-                "translate(" + x_padding + "," + y_padding + ")")
+                .attr("class", "block")
+                .attr("width", @block_width())
+                .attr("height", @block_height())
+                .attr("id", (d) -> "id_block_" + d.block_id)
+                .on('click', (d) ->
+                    # Toggle selected state of clicked block
+                    d.selected = !d.selected
+                    if d.selected
+                        obj.select_block(d)
+                    else
+                        obj.deselect_block(d)
+                )
+                .on('mouseout', (d, i) =>
+                    @block_mouseout(d, i, d3.select("#id_block_" + i))
+                )
+                .on('mouseover', (d, i) =>
+                    @block_mouseover(d, i, d3.select("#id_block_" + i))
+                )
+                .style("stroke", '#555')
+                .style('fill-opacity', (d) -> d.fill_opacity)
+                .style('stroke-width', (d) -> d.stroke_width)
+                # Center block within cell
+                .attr("transform", (d) =>
+                    x_padding = (@cell_width() - @block_width()) / 2
+                    y_padding = (@cell_height() - @block_height()) / 2
+                    "translate(" + x_padding + "," + y_padding + ")")
+        # Remove blocks that are no longer in the data set.
         blocks.exit().remove()
 
-        blocks.transition()
+    update_cell_positions: () ->
+        @grid.selectAll(".cell").transition()
             .duration(600)
             .ease("cubic-in-out")
             .attr("transform", (d) =>
                 position = @cell_position d
                 "translate(" + position.x + "," + position.y + ")")
 
-        d3.select(".chart").selectAll(".cell").select(".block")
-            .style("fill", (d) -> if d.selected then obj.selected_fill_color() else obj.block_color(d))
+    update_cell_formats: () ->
+        obj = @
+        blocks = @grid.selectAll(".cell").select(".block")
+            .style("fill", (d) ->
+                if d.selected
+                    obj.selected_fill_color()
+                else
+                    obj.block_color(d)
+            )
             .style("fill-opacity", (d) ->
                 if d.selected
                     d.fill_opacity = 0.8
