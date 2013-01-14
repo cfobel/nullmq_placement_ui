@@ -254,18 +254,24 @@ class PlacementGrid
         for block_id,block of @selected_blocks
             block.selected = false
         @selected_blocks = {}
-        @update_block_info()
-        @update_cell_formats()
+        @update_selected_block_info()
+        # Skip cell formatting until we can verify that it is working as
+        # expected.
+        #@update_cell_formats()
 
     select_block: (d) ->
         @selected_blocks[d.block_id] = d
-        @update_block_info()
-        @update_cell_formats()
+        @update_selected_block_info()
+        # Skip cell formatting until we can verify that it is working as
+        # expected.
+        #@update_cell_formats()
 
     deselect_block: (d) ->
         delete @selected_blocks[d.block_id]
-        @update_block_info()
-        @update_cell_formats()
+        @update_selected_block_info()
+        # Skip cell formatting until we can verify that it is working as
+        # expected.
+        #@update_cell_formats()
 
     selected_block_values: () -> (block for block_id,block of @selected_blocks)
 
@@ -291,6 +297,8 @@ class PlacementGrid
         @batch_block_positions.push(@block_positions)
         @update_selected_block_info()
         @update_cell_data()
+        # Skip cell formatting until we can verify that it is working as
+        # expected.
         #@update_cell_formats()
         @update_cell_positions()
         console.log("batch_styles", @batch_styles)
