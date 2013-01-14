@@ -19,6 +19,104 @@ class Block
             .style("stroke-width", d.stroke_width)
 
 
+class SwapContext
+    constructor: (block_positions) ->
+        # Make a copy of the current block positions, which will be updated to
+        # reflect the new positions of blocks involved in accepted swaps.
+        @block_positions = $.extend(true, [], block_positions)
+        @all = []
+        @participated = {}
+        @not_participated = {}
+        @accepted = {}
+        @skipped = {}
+        @by_from_block_id = {}
+        @by_to_block_id = {}
+    connect: d3.svg.diagonal()
+    process_swap: (swap_info) =>
+        # Record information for current swap in `all` array, as well
+        # as indexed by:
+        #   -Whether or not the swap configuration was evaluated
+        #   If the swap was evaluated, also index by:
+        #       -The `from_` block of the swap configuration.
+        #       -The `to` block of the swap configuration.
+        #       -Whether or not the swap was accepted/skipped.
+        @all.push(swap_info)
+        if swap_info.swap_config.participate
+            if swap_info.swap_config.ids.from_ >= 0
+                if swap_info.swap_config.ids.from_ of @by_from_block_id
+                    block_swap_infos = @by_from_block_id[swap_info.swap_config.ids.from_]
+                    block_swap_infos.push(swap_info)
+                else
+                    block_swap_infos = [swap_info]
+                    @by_from_block_id[swap_info.swap_config.ids.from_] = block_swap_infos
+            if swap_info.swap_config.ids.to >= 0
+                if swap_info.swap_config.ids.to of @by_to_block_id
+                    block_swap_infos = @by_to_block_id[swap_info.swap_config.ids.to]
+                    block_swap_infos.push(swap_info)
+                else
+                    block_swap_infos = [swap_info]
+                    @by_to_block_id[swap_info.swap_config.ids.to] = block_swap_infos
+            @participated[swap_info.swap_i] = swap_info
+            if swap_info.swap_result.swap_accepted
+                @accepted[swap_info.swap_i] = swap_info
+            else
+                @skipped[swap_info.swap_i] = swap_info
+        else
+            @not_participated[swap_info.swap_i] = swap_info
+
+    set_swap_link_data: (placement_grid) ->
+        swap_links = placement_grid.grid.selectAll(".link").data(@all)
+        swap_links.enter()
+            .append("svg:path")
+            .attr("class", "link")
+            .style("fill", "none")
+            .style("pointer-events", "none")
+            .style("stroke", "none")
+            .style("stroke-width", 1.5)
+            .style("opacity", 0)
+        swap_links.exit().remove()
+
+    update_link_formats: (placement_grid) ->
+        swap_links = placement_grid.grid.selectAll(".link")
+        swap_links.transition()
+            .duration(200)
+            .ease("cubic-in-out")
+            .style("opacity", (d) ->
+                if d.swap_result.swap_accepted
+                    return 0.9
+                else if not d.swap_config.participate
+                    return 0.25
+                else
+                    return 0.35
+            )
+            .style("stroke", (d) ->
+                if d.swap_result.swap_accepted
+                    return "#060"
+                else if not d.swap_config.participate
+                    return "#D00"
+                else
+                    return "#FFB300"
+            )
+            .attr("d", (d) =>
+                [from_x, from_y] = d.swap_config.coords.from_
+                from_coords = x: from_x, y: from_y
+                [from_x, from_y] = d.swap_config.coords.to
+                to_coords = x: from_x, y: from_y
+                @connect.source(placement_grid.cell_center(from_coords))
+                    .target(placement_grid.cell_center(to_coords))()
+            )
+        console.log(["current block positions", @block_positions])
+
+    apply_swaps: () ->
+        for swap_i,swap_info of @accepted
+            from_d = @block_positions[swap_info.swap_config.ids.from_]
+            [from_d.x, from_d.y] = swap_info.swap_config.coords.to
+            to_d = @block_positions[swap_info.swap_config.ids.to]
+            [to_d.x, to_d.y] = swap_info.swap_config.coords.from_
+            console.log(["accepted swap", from_d, to_d])
+        return @block_positions
+
+
 class PlacementGrid
     constructor: (@id, @width) ->
         @zoom = d3.behavior.zoom()
@@ -68,7 +166,6 @@ class PlacementGrid
         @batch_i = 0
         @swap_infos = new Array()
 
-    connect: d3.svg.diagonal()
     update_zoom: (translate, scale) =>
         #console.log([translate, scale])
         transform_str = "translate(" + @zoom.translate() + ")" + " scale(" +
@@ -78,47 +175,6 @@ class PlacementGrid
         transform_str = "translate(" + @zoom.translate() + ")" + " scale(" +
             @zoom.scale() + ")"
         window.location.hash = transform_str
-    set_swap_links: (swap_context) ->
-        @swap_infos = swap_context.all
-        swap_links = @grid.selectAll(".link").data(@swap_infos)
-        swap_links.enter()
-            .append("svg:path")
-            .attr("class", "link")
-            .style("fill", "none")
-            .style("pointer-events", "none")
-            .style("stroke", "none")
-            .style("stroke-width", 1.5)
-            .style("opacity", 0)
-        swap_links.exit().remove()
-
-        swap_links.transition()
-            .duration(200)
-            .ease("cubic-in-out")
-            .style("opacity", (d) ->
-                if d.swap_result.swap_accepted
-                    return 0.9
-                else if not d.swap_config.participate
-                    return 0.25
-                else
-                    return 0.35
-            )
-            .style("stroke", (d) ->
-                if d.swap_result.swap_accepted
-                    return "#060"
-                else if not d.swap_config.participate
-                    return "#D00"
-                else
-                    return "#FFB300"
-            )
-            .attr("d", (d) =>
-                [from_x, from_y] = d.swap_config.coords.from_
-                from_coords = x: from_x, y: from_y
-                [from_x, from_y] = d.swap_config.coords.to
-                to_coords = x: from_x, y: from_y
-                @connect.source(@cell_center(from_coords))
-                    .target(@cell_center(to_coords))()
-            )
-        console.log(["current block positions", @block_positions])
 
     selected_fill_color: () -> @colors(@selected_fill_color_num)
 
@@ -333,3 +389,4 @@ class AreaRange
 @PlacementGrid = PlacementGrid
 @AreaRange = AreaRange
 @Block = Block
+@SwapContext = SwapContext
