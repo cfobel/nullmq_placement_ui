@@ -67,12 +67,6 @@ class PlacementController extends EchoJsonController
         @apply_to_block_swaps(block_id, @unhighlight_block)
 
     apply_to_block_swaps: (block_id, callback) =>
-        # Apply the callback function to each block involved in any swap where
-        # either the `from` or `to` block ID is `block_id`.
-        for block in @connected_blocks(block_id)
-            callback(block)
-
-    connected_blocks: (block_id) =>
         try
             c = this.current_swap_context()
         catch e
@@ -81,21 +75,10 @@ class PlacementController extends EchoJsonController
             else
                 throw e
 
-        # Highlight block under cursor
-        connected_blocks = [@placement_grid.block_positions[block_id]]
-        if block_id of c.by_from_block_id
-            # Highlight any blocks that involve the current block as the `from`
-            # block id
-            for swap_info in c.by_from_block_id[block_id]
-                block = @placement_grid.block_positions[swap_info.swap_config.ids.to]
-                connected_blocks.push(block)
-        else if block_id of c.by_to_block_id
-            # Highlight any blocks that involve the current block as the `to`
-            # block id
-            for swap_info in c.by_to_block_id[block_id]
-                block = @placement_grid.block_positions[swap_info.swap_config.ids.from_]
-                connected_blocks.push(block)
-        return connected_blocks
+        # Apply the callback function to each block involved in any swap where
+        # either the `from` or `to` block ID is `block_id`.
+        for block in c.connected_blocks(block_id)
+            callback(block)
 
     block_mouseover: (d, i, from_rect) =>
         @highlight_block_swaps(i)

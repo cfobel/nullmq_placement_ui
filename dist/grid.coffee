@@ -134,6 +134,25 @@ class SwapContext
             console.log(["accepted swap", from_d, to_d])
         return block_positions
 
+    connected_blocks: (block_id) =>
+        # Return list of blocks that are connected to the block with ID
+        # `block_id` and that were involved involved in any swaps within the
+        # current swap context.
+        connected_blocks = [@block_positions[block_id]]
+        if block_id of @by_from_block_id
+            # Highlight any blocks that involve the current block as the `from`
+            # block id
+            for swap_info in @by_from_block_id[block_id]
+                block = @block_positions[swap_info.swap_config.ids.to]
+                connected_blocks.push(block)
+        else if block_id of @by_to_block_id
+            # Highlight any blocks that involve the current block as the `to`
+            # block id
+            for swap_info in @by_to_block_id[block_id]
+                block = @block_positions[swap_info.swap_config.ids.from_]
+                connected_blocks.push(block)
+        return connected_blocks
+
 
 class PlacementGrid
     constructor: (@id, @width) ->
