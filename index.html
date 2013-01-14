@@ -93,6 +93,7 @@
 
     Mousetrap.bind('space', () -> placement_controller.iterate_and_update(1))
     Mousetrap.bind('a', () -> placement_controller.apply_swap_results())
+    Mousetrap.bind('u', () -> placement_controller.undo_swaps())
     Mousetrap.bind('l', load_placement);
     Mousetrap.bind('z', placement_grid.set_zoom_location);
 </script>

@@ -137,6 +137,15 @@ class PlacementController extends EchoJsonController
         @swap_contexts.push(new SwapContext(@placement_grid.block_positions))
         @_iterate_continue(on_recv)
 
+    undo_swaps: () =>
+        if @iterate_action = @iterate_actions.REQUEST_SWAPS
+            swap_context = @current_swap_context()
+            raw_block_positions = []
+            for d in swap_context.block_positions
+                raw_block_positions.push([d.x, d.y, d.z])
+            @placement_grid.set_raw_block_positions(raw_block_positions)
+            @iterate_action = @iterate_actions.APPLY_SWAPS
+
     apply_swap_results: () =>
         if @iterate_action == @iterate_actions.APPLY_SWAPS
             swap_context = @current_swap_context()

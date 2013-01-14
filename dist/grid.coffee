@@ -131,7 +131,7 @@ class SwapContext
             [from_d.x, from_d.y] = swap_info.swap_config.coords.to
             to_d = block_positions[swap_info.swap_config.ids.to]
             [to_d.x, to_d.y] = swap_info.swap_config.coords.from_
-            console.log(["accepted swap", from_d, to_d])
+            #console.log(["accepted swap", from_d, to_d])
         return block_positions
 
     connected_blocks: (block_id) =>
@@ -292,7 +292,7 @@ class PlacementGrid
         # expected.
         #@update_cell_formats()
 
-    selected_block_values: () -> (block for block_id,block of @selected_blocks)
+    selected_block_values: () -> (@block_positions[block_id] for block_id,block of @selected_blocks)
 
     update_selected_block_info: () ->
         block_objs = @selected_block_values()
@@ -314,12 +314,12 @@ class PlacementGrid
         @batch_color_num += 3
         @block_positions = block_positions
         @batch_block_positions.push(@block_positions)
-        @update_selected_block_info()
         @update_cell_data()
         # Skip cell formatting until we can verify that it is working as
         # expected.
         #@update_cell_formats()
         @update_cell_positions()
+        @update_selected_block_info()
         console.log("batch_styles", @batch_styles)
         @batch_styles.push({"fill_color": @colors(@batch_color_num)})
 
