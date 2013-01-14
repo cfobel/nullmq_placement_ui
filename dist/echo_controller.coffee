@@ -46,6 +46,10 @@ class PlacementController extends EchoJsonController
         @placement_grid.block_mouseover = @block_mouseover
         @placement_grid.block_mouseout = @block_mouseout
         @to_rect = null
+        @iterate_actions = 
+            REQUEST_SWAPS: 10
+            APPLY_SWAPS:   20
+        @iterate_action = @iterate_actions.REQUEST_SWAPS
 
     unhighlight_block: (block) =>
         block_rect_id = "#id_block_" + block.block_id
@@ -133,28 +137,46 @@ class PlacementController extends EchoJsonController
         @swap_contexts.push(new SwapContext(@placement_grid.block_positions))
         @_iterate_continue(on_recv)
 
+    apply_swap_results: () =>
+        if @iterate_action == @iterate_actions.APPLY_SWAPS
+            swap_context = @current_swap_context()
+            block_positions = swap_context.apply_swaps()
+            raw_block_positions = []
+            for d in block_positions
+                raw_block_positions.push([d.x, d.y, d.z])
+            moved_count = 0
+            for block, i in block_positions
+                old_d = @placement_grid.block_positions[i]
+                new_array = raw_block_positions[i]
+                if old_d.x != new_array[0] or old_d.y != new_array[1] or old_d.z != new_array[2]
+                    #console.log(["new block position", i, old_d, new_array])
+                    moved_count += 1
+            @placement_grid.set_raw_block_positions(raw_block_positions)
+            @iterate_action = @iterate_actions.REQUEST_SWAPS
+            return moved_count
+        else
+            error = 
+                message: "Cannot apply swaps current state"
+                code: -200
+            throw error
+
     iterate_and_update: (iter_count) =>
-        update_grid = (value) =>
-            try
-                swap_context = @current_swap_context()
-                console.log(["swap_context", swap_context])
-                swap_context.set_swap_link_data(@placement_grid)
-                swap_context.update_link_formats(@placement_grid)
-                block_positions = swap_context.apply_swaps()
-                raw_block_positions = []
-                for d in block_positions
-                    raw_block_positions.push([d.x, d.y, d.z])
-                for block, i in block_positions
-                    old_d = @placement_grid.block_positions[i]
-                    new_array = raw_block_positions[i]
-                    if old_d.x != new_array[0] or old_d.y != new_array[1] or old_d.z != new_array[2]
-                        console.log(["new block position", i, old_d, new_array])
-                do_task = () => @placement_grid.set_raw_block_positions(raw_block_positions)
-                setTimeout(do_task, 250)
-            catch error
-                # There is no current swap context, so do nothing
-                swap_context = null
-        @iterate_swap_eval(update_grid, iter_count)
+        if @iterate_action == @iterate_actions.REQUEST_SWAPS
+            update_grid = (value) =>
+                try
+                    swap_context = @current_swap_context()
+                    console.log(["swap_context", swap_context])
+                    swap_context.set_swap_link_data(@placement_grid)
+                    swap_context.update_link_formats(@placement_grid)
+                    @iterate_action = @iterate_actions.APPLY_SWAPS
+                catch error
+                    # There is no current swap context, so do nothing
+                    swap_context = null
+            @iterate_swap_eval(update_grid, iter_count)
+        else
+            moved_count = @apply_swap_results()
+            if moved_count <= 0
+                @iterate_and_update(iter_count)
 
 
 @EchoController = EchoController
