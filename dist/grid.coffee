@@ -20,6 +20,18 @@ class Block
 
 
 class SwapContext
+    # Each `SwapContext` instance represents a set of swap configurations that
+    # were generated.  In addition to storing each set of swaps, the
+    # information for each swap is indexed by:
+    #   -Whether or not the swap configuration was evaluated
+    #   If the swap was evaluated, also index by:
+    #       -The `from_` block of the swap configuration.
+    #       -The `to` block of the swap configuration.
+    #       -Whether or not the swap was accepted/skipped.
+    #
+    # Organizing swaps into `SwapContext` objects makes it straight-forward to
+    # apply the swaps to a starting set of block positions.
+
     constructor: (block_positions) ->
         # Make a copy of the current block positions, which will be updated to
         # reflect the new positions of blocks involved in accepted swaps.
@@ -65,6 +77,8 @@ class SwapContext
             @not_participated[swap_info.swap_i] = swap_info
 
     set_swap_link_data: (placement_grid) ->
+        # Create a d3 diagonal between the blocks involved in each swap
+        # configuration in the current context.
         swap_links = placement_grid.grid.selectAll(".link").data(@all)
         swap_links.enter()
             .append("svg:path")
@@ -77,6 +91,7 @@ class SwapContext
         swap_links.exit().remove()
 
     update_link_formats: (placement_grid) ->
+        # Update the style and end-point locations for each swap link.
         swap_links = placement_grid.grid.selectAll(".link")
         swap_links.transition()
             .duration(200)
@@ -108,13 +123,16 @@ class SwapContext
         console.log(["current block positions", @block_positions])
 
     apply_swaps: () ->
+        block_positions = $.extend(true, [], @block_positions)
+        # Update the block positions array based on the accepted swaps in the
+        # current context.
         for swap_i,swap_info of @accepted
-            from_d = @block_positions[swap_info.swap_config.ids.from_]
+            from_d = block_positions[swap_info.swap_config.ids.from_]
             [from_d.x, from_d.y] = swap_info.swap_config.coords.to
-            to_d = @block_positions[swap_info.swap_config.ids.to]
+            to_d = block_positions[swap_info.swap_config.ids.to]
             [to_d.x, to_d.y] = swap_info.swap_config.coords.from_
             console.log(["accepted swap", from_d, to_d])
-        return @block_positions
+        return block_positions
 
 
 class PlacementGrid
