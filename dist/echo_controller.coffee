@@ -122,17 +122,21 @@ class PlacementController extends EchoJsonController
 
     update_swap_context_info: () =>
         # Update current block info table
+        reverse_swap_contexts = @swap_contexts[..]
+        reverse_swap_contexts.reverse()
         current_info = d3.select("#swap_context_current")
                 .selectAll(".swap_context_info")
-                .data(@swap_contexts)
+                .data(reverse_swap_contexts)
         current_info.enter()
                 .append("div")
                 .attr("class", "swap_context_info")
         current_info.exit().remove()
         current_info.html((d, i) =>
                     data =
-                        index: i
+                        index: @swap_contexts.length - i - 1
                         accepted_count: d.accepted_count()
+                        swap_contexts_count: @swap_contexts.length
+                        reverse_index: i
                     @swap_context_template(data)
                 )
 

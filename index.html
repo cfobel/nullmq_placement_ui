@@ -11,6 +11,7 @@
 <script type="text/javascript" src="/dist/lib/mousetrap.min.js"></script>
 <script type="text/javascript" src="/dist/lib/stomp.js"></script>
 <script type="text/javascript" src="/dist/lib/nullmq.js"></script>
+<script type="text/javascript" src="/dist/bootstrap/js/bootstrap.min.js"></script>
 </head>
 <body>
 <div class="container">
@@ -33,7 +34,7 @@
     <div class="span4">
       <div class="row">
         <h3>Swap context:</h3>
-        <div id="swap_context_current" class="span4 visible" ></div>
+        <div id="swap_context_current" class="span4 visible" style="height: 250; overflow: auto;"></div>
       </div>
     </div>
     <div class="span4">
@@ -63,13 +64,18 @@
     </div>
     <div id="swap_context_template" class="invisible" >
     <!-- The contents of the tag are used as a template to format an info table
-        for a block -->
+      for a block -->
+      <p>
+        <a href="#" data-toggle="collapse" data-target="#swap_context_{{ index }}">({{ index }}) accepted: {{ accepted_count }}</a>
+       </p>
+      <div class="collapse" id="swap_context_{{ index }}">
         <table class="condensed-table table-bordered table-striped table-hover">
-            <tbody>
+          <tbody>
             <tr><th>Index</th><td class="swap_context_i">({{ index }})</td></tr>
             <tr><th>Accepted count</th><td class="accepted_count">{{ accepted_count }}</td></tr>
-            </tbody>
+          </tbody>
         </table>
+      </div>
     </div>
   </div>
 </section>
