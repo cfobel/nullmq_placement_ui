@@ -73,28 +73,16 @@
     $("#id_clear_selection").click(() =>
         placement_grid.clear_selection()
     )
-    @load_placement = () ->
-        placement_controller.do_request({"command": "get_block_positions"}, (value) ->
-            placement_grid.set_raw_block_positions(value.result)
-            placement_controller.do_request({"command": "config"}, (response) ->
-                    config = response.result
-                    for a, i in config.area_ranges
-                        a = new AreaRange(a[0], a[1], a[2], a[3])
-                        placement_grid.highlight_area_range(a)
-            )
-            console.log("load_placement")
-        )
+    placement_controller.initialize(() -> placement_controller.load_placement(true))
 
-    placement_controller.initialize(load_placement)
-
-    $("#id_load_placement").click(() =>
-        @load_placement()
+    $("#id_load_placement").click(() ->
+        placement_controller.load_placement(true)
     )
 
     Mousetrap.bind('space', () -> placement_controller.iterate_and_update(1))
     Mousetrap.bind('a', () -> placement_controller.apply_swap_results())
     Mousetrap.bind('u', () -> placement_controller.undo_swaps())
-    Mousetrap.bind('l', load_placement);
+    Mousetrap.bind('l', () -> placement_controller.load_placement(true));
     Mousetrap.bind('z', placement_grid.set_zoom_location);
 </script>
 </body>

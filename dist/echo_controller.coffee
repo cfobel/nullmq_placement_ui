@@ -146,10 +146,31 @@ class PlacementController extends EchoJsonController
             @placement_grid.set_raw_block_positions(raw_block_positions)
             @iterate_action = @iterate_actions.APPLY_SWAPS
 
+    load_placement: (load_config=false) ->
+        obj = @
+        @do_request({"command": "get_block_positions"}, (value) =>
+            @placement_grid.set_raw_block_positions(value.result)
+            if load_config
+                @load_config()
+            @iterate_action = @iterate_actions.REQUEST_SWAPS
+        )
+
+    load_config: () =>
+        @do_request({"command": "config"}, (response) =>
+                config = response.result
+                for a, i in config.area_ranges
+                    a = new AreaRange(a[0], a[1], a[2], a[3])
+                    @placement_grid.highlight_area_range(a)
+        )
+
     apply_swap_results: () =>
         if @iterate_action == @iterate_actions.APPLY_SWAPS
             swap_context = @current_swap_context()
-            block_positions = swap_context.apply_swaps()
+            try
+                block_positions = swap_context.apply_swaps()
+            catch e
+                @load_placement()
+                return
             raw_block_positions = []
             for d in block_positions
                 raw_block_positions.push([d.x, d.y, d.z])
