@@ -50,6 +50,7 @@ class PlacementController extends EchoJsonController
             REQUEST_SWAPS: 10
             APPLY_SWAPS:   20
         @iterate_action = @iterate_actions.REQUEST_SWAPS
+        @swap_context_i = -1
 
     unhighlight_block: (block) =>
         block_rect_id = "#id_block_" + block.block_id
@@ -102,7 +103,6 @@ class PlacementController extends EchoJsonController
 
     initialize: (callback) ->
         if not @initialized
-            console.log("initialize")
             @do_request({"command": "initialize", "kwargs": {"depth": 2}}, callback)
             @initialized = true
 
@@ -122,7 +122,7 @@ class PlacementController extends EchoJsonController
                 message: "There are currently no swap contexts"
                 code: -100
             throw error
-        return @swap_contexts[@swap_contexts.length - 1]
+        return @swap_contexts[@swap_context_i]
 
     process_swap: (message) =>
         swap_context = @current_swap_context()
@@ -134,16 +134,12 @@ class PlacementController extends EchoJsonController
             count = 1
         @_iterate_count = count
         @_iterate_i = 0
-        @swap_contexts.push(new SwapContext(@placement_grid.block_positions))
         @_iterate_continue(on_recv)
 
     undo_swaps: () =>
         if @iterate_action = @iterate_actions.REQUEST_SWAPS
             swap_context = @current_swap_context()
-            raw_block_positions = []
-            for d in swap_context.block_positions
-                raw_block_positions.push([d.x, d.y, d.z])
-            @placement_grid.set_raw_block_positions(raw_block_positions)
+            @placement_grid.set_block_positions(swap_context.block_positions)
             @iterate_action = @iterate_actions.APPLY_SWAPS
 
     load_placement: (load_config=false) ->
@@ -171,17 +167,13 @@ class PlacementController extends EchoJsonController
             catch e
                 @load_placement()
                 return
-            raw_block_positions = []
-            for d in block_positions
-                raw_block_positions.push([d.x, d.y, d.z])
             moved_count = 0
             for block, i in block_positions
                 old_d = @placement_grid.block_positions[i]
-                new_array = raw_block_positions[i]
-                if old_d.x != new_array[0] or old_d.y != new_array[1] or old_d.z != new_array[2]
-                    #console.log(["new block position", i, old_d, new_array])
+                new_d = block_positions[i]
+                if old_d.x != new_d.x or old_d.y != new_d.y or old_d.z != new_d.z
                     moved_count += 1
-            @placement_grid.set_raw_block_positions(raw_block_positions)
+            @placement_grid.set_block_positions(block_positions)
             @iterate_action = @iterate_actions.REQUEST_SWAPS
             return moved_count
         else
@@ -190,23 +182,70 @@ class PlacementController extends EchoJsonController
                 code: -200
             throw error
 
-    iterate_and_update: (iter_count) =>
-        if @iterate_action == @iterate_actions.REQUEST_SWAPS
-            update_grid = (value) =>
-                try
-                    swap_context = @current_swap_context()
-                    console.log(["swap_context", swap_context])
-                    swap_context.set_swap_link_data(@placement_grid)
-                    swap_context.update_link_formats(@placement_grid)
-                    @iterate_action = @iterate_actions.APPLY_SWAPS
-                catch error
-                    # There is no current swap context, so do nothing
-                    swap_context = null
-            @iterate_swap_eval(update_grid, iter_count)
+    apply_swap_links: () =>
+        try
+            swap_context = @current_swap_context()
+            swap_context.set_swap_link_data(@placement_grid)
+            swap_context.update_link_formats(@placement_grid)
+            @iterate_action = @iterate_actions.APPLY_SWAPS
+        catch error
+            # There is no current swap context, so do nothing
+            swap_context = null
+
+    iterate_and_update: (iter_count=1) =>
+    previous: () =>
+        if @swap_context_i > 0
+            c = @current_swap_context()
+            if @iterate_action == @iterate_actions.APPLY_SWAPS
+                @swap_context_i -= 1
+                c = @current_swap_context()
+                @apply_swap_links()
+                @iterate_action = @iterate_actions.REQUEST_SWAPS
+                if c.accepted_count() <= 0
+                    @previous()
+            else
+                @undo_swaps()
+
+    goto: (swap_context_i) =>
+        if swap_context_i >= 0
+            @swap_context_i = swap_context_i
+            @apply_swap_links()
+            @apply_swap_results()
+            @iterate_action = @iterate_actions.REQUEST_SWAPS
+            @undo_swaps()
+
+    home: () => @goto(0)
+
+    end: () =>
+        if @swap_contexts.length >= 0
+           @goto(@swap_contexts.length - 1)
+
+    next: (iter_count=1, append=true) =>
+        if @swap_context_i > 0
+            c = @current_swap_context()
+        if append and (@swap_context_i < 0 or
+                @swap_context_i == @swap_contexts.length - 1 and
+                @iterate_action == @iterate_actions.REQUEST_SWAPS)
+            # There is no `next` stored `SwapContext` available, so iterate to
+            # create a new one.
+            @swap_contexts.push(new SwapContext(@placement_grid.block_positions))
+            @swap_context_i = @swap_contexts.length - 1
+            @iterate_swap_eval((() =>
+                @apply_swap_links()
+                @iterate_action = @iterate_actions.APPLY_SWAPS
+            ), iter_count)
+        else if @iterate_action == @iterate_actions.REQUEST_SWAPS
+            # The next `SwapContext` is already completed and cached, so simply
+            # update state.
+            @swap_context_i += 1
+            @apply_swap_links()
+            @iterate_action = @iterate_actions.APPLY_SWAPS
         else
-            moved_count = @apply_swap_results()
-            if moved_count <= 0
-                @iterate_and_update(iter_count)
+            @apply_swap_results()
+            @iterate_action = @iterate_actions.REQUEST_SWAPS
+            c = @current_swap_context()
+            if c.accepted_count() <= 0
+                @next(iter_count)
 
 
 @EchoController = EchoController

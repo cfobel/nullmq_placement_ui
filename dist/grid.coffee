@@ -43,6 +43,7 @@ class SwapContext
         @skipped = {}
         @by_from_block_id = {}
         @by_to_block_id = {}
+    accepted_count: () => Object.keys(@accepted).length
     connect: d3.svg.diagonal()
     process_swap: (swap_info) =>
         # Record information for current swap in `all` array, as well
@@ -120,7 +121,6 @@ class SwapContext
                 @connect.source(placement_grid.cell_center(from_coords))
                     .target(placement_grid.cell_center(to_coords))()
             )
-        console.log(["current block positions", @block_positions])
 
     apply_swaps: () ->
         block_positions = $.extend(true, [], @block_positions)
@@ -131,7 +131,6 @@ class SwapContext
             [from_d.x, from_d.y] = swap_info.swap_config.coords.to
             to_d = block_positions[swap_info.swap_config.ids.to]
             [to_d.x, to_d.y] = swap_info.swap_config.coords.from_
-            #console.log(["accepted swap", from_d, to_d])
         return block_positions
 
     connected_blocks: (block_id) =>
@@ -200,7 +199,6 @@ class PlacementGrid
         @swap_infos = new Array()
 
     update_zoom: (translate, scale) =>
-        #console.log([translate, scale])
         transform_str = "translate(" + @zoom.translate() + ")" + " scale(" +
             @zoom.scale() + ")"
         @grid.attr("transform", transform_str)
@@ -212,7 +210,6 @@ class PlacementGrid
     selected_fill_color: () -> @colors(@selected_fill_color_num)
 
     translate_block_positions: (block_positions) ->
-        console.log(["translate_block_positions", block_positions])
         @_last_translated_positions = block_positions
         data = new Array()
         for position, i in block_positions

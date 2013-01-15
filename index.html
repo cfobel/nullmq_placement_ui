@@ -79,7 +79,13 @@
         placement_controller.load_placement(true)
     )
 
-    Mousetrap.bind('space', () -> placement_controller.iterate_and_update(1))
+    Mousetrap.bind('home', () -> placement_controller.home())
+    Mousetrap.bind('end', () -> placement_controller.end())
+    Mousetrap.bind('space', () -> placement_controller.next())
+    Mousetrap.bind('n', () -> placement_controller.next())
+    Mousetrap.bind('p', () -> placement_controller.previous())
+    Mousetrap.bind('left', () -> placement_controller.previous())
+    Mousetrap.bind('right', () -> placement_controller.next())
     Mousetrap.bind('a', () -> placement_controller.apply_swap_results())
     Mousetrap.bind('u', () -> placement_controller.undo_swaps())
     Mousetrap.bind('l', () -> placement_controller.load_placement(true));
