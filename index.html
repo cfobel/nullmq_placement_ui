@@ -34,7 +34,7 @@
     <div class="span4">
       <div class="row">
         <h3>Swap context:</h3>
-        <div id="swap_context_current" class="span4 visible" style="height: 250; overflow: auto;"></div>
+        <div id="swap_context_current" class="span4 visible" style="height: 500; overflow: auto;"></div>
       </div>
     </div>
     <div class="span4">
@@ -72,14 +72,11 @@
           skipped: {{ skipped_count }}
           total_count: {{ participated_count }}/{{ total_count }}
         </a>
+        <a href="#" class="btn btn-small" id="id_swap_context_select_{{ index }}">select</a>
       </p>
       <div class="collapse" id="swap_context_{{ index }}">
-        <table class="condensed-table table-bordered table-striped table-hover">
-          <tbody>
-            <tr><th>Index</th><td class="swap_context_i">({{ index }})</td></tr>
-            <tr><th>Accepted count</th><td class="accepted_count">{{ accepted_count }}</td></tr>
-            <tr><th>Skipped count</th><td class="skipped_count">{{ skipped_count }}</td></tr>
-          </tbody>
+        <table class="table-condensed table-bordered table-striped table-hover">
+          <tbody id="id_swap_context_tbody_{{ index }}"></tbody>
         </table>
       </div>
     </div>
