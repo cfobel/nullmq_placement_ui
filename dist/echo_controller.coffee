@@ -51,6 +51,10 @@ class PlacementController extends EchoJsonController
             APPLY_SWAPS:   20
         @iterate_action = @iterate_actions.REQUEST_SWAPS
         @swap_context_i = -1
+        _.templateSettings =
+          interpolate: /\{\{(.+?)\}\}/g
+        @swap_context_template_text = d3.select("#swap_context_template").html()
+        @swap_context_template = _.template(@swap_context_template_text)
 
     unhighlight_block: (block) =>
         block_rect_id = "#id_block_" + block.block_id
@@ -116,12 +120,29 @@ class PlacementController extends EchoJsonController
         else
             @do_request({"command": "iter.next"}, on_recv)
 
+    update_swap_context_info: () =>
+        # Update current block info table
+        current_info = d3.select("#swap_context_current")
+                .selectAll(".swap_context_info")
+                .data(@swap_contexts)
+        current_info.enter()
+                .append("div")
+                .attr("class", "swap_context_info")
+        current_info.exit().remove()
+        current_info.html((d, i) =>
+                    data =
+                        index: i
+                        accepted_count: d.accepted_count()
+                    @swap_context_template(data)
+                )
+
     current_swap_context: () ->
-        if @swap_contexts.length <= 0
+        if @swap_contexts.length < 0
             error = 
                 message: "There are currently no swap contexts"
                 code: -100
             throw error
+        @update_swap_context_info()
         return @swap_contexts[@swap_context_i]
 
     process_swap: (message) =>

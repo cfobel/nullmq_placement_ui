@@ -32,6 +32,12 @@
     <div id="chart" class="span8 visible"></div>
     <div class="span4">
       <div class="row">
+        <h3>Swap context:</h3>
+        <div id="swap_context_current" class="span4 visible" ></div>
+      </div>
+    </div>
+    <div class="span4">
+      <div class="row">
         <h3>Current block:</h3>
         <div id="placement_info_current" class="span4 visible" ></div>
       </div>
@@ -52,6 +58,16 @@
             <tbody>
             <tr><th>Coordinates</th><td class="block_coordinates">({{ x }}, {{ y }})</td></tr>
             <tr><th>Block id</th><td class="block_id">{{ block_id }}</td></tr>
+            </tbody>
+        </table>
+    </div>
+    <div id="swap_context_template" class="invisible" >
+    <!-- The contents of the tag are used as a template to format an info table
+        for a block -->
+        <table class="condensed-table table-bordered table-striped table-hover">
+            <tbody>
+            <tr><th>Index</th><td class="swap_context_i">({{ index }})</td></tr>
+            <tr><th>Accepted count</th><td class="accepted_count">{{ accepted_count }}</td></tr>
             </tbody>
         </table>
     </div>
