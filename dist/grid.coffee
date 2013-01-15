@@ -44,6 +44,9 @@ class SwapContext
         @by_from_block_id = {}
         @by_to_block_id = {}
     accepted_count: () => Object.keys(@accepted).length
+    skipped_count: () => Object.keys(@skipped).length
+    participated_count: () => Object.keys(@participated).length
+    total_count: () => @all.length
     connect: d3.svg.diagonal()
     process_swap: (swap_info) =>
         # Record information for current swap in `all` array, as well

@@ -66,13 +66,19 @@
     <!-- The contents of the tag are used as a template to format an info table
       for a block -->
       <p>
-        <a href="#" data-toggle="collapse" data-target="#swap_context_{{ index }}">({{ index }}) accepted: {{ accepted_count }}</a>
-       </p>
+        <a href="#" data-toggle="collapse" data-target="#swap_context_{{ index }}">
+          ({{ index }})
+          accepted: {{ accepted_count }}
+          skipped: {{ skipped_count }}
+          total_count: {{ participated_count }}/{{ total_count }}
+        </a>
+      </p>
       <div class="collapse" id="swap_context_{{ index }}">
         <table class="condensed-table table-bordered table-striped table-hover">
           <tbody>
             <tr><th>Index</th><td class="swap_context_i">({{ index }})</td></tr>
             <tr><th>Accepted count</th><td class="accepted_count">{{ accepted_count }}</td></tr>
+            <tr><th>Skipped count</th><td class="skipped_count">{{ skipped_count }}</td></tr>
           </tbody>
         </table>
       </div>

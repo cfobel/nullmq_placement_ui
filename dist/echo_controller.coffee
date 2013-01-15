@@ -135,6 +135,9 @@ class PlacementController extends EchoJsonController
                     data =
                         index: @swap_contexts.length - i - 1
                         accepted_count: d.accepted_count()
+                        skipped_count: d.skipped_count()
+                        total_count: d.total_count()
+                        participated_count: d.participated_count()
                         swap_contexts_count: @swap_contexts.length
                         reverse_index: i
                     @swap_context_template(data)
