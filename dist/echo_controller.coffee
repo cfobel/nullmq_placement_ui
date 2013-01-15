@@ -55,6 +55,10 @@ class PlacementController extends EchoJsonController
           interpolate: /\{\{(.+?)\}\}/g
         @swap_context_template_text = d3.select("#swap_context_template").html()
         @swap_context_template = _.template(@swap_context_template_text)
+        @swap_context_detail_template_text =
+                d3.select("#swap_context_detail_template").html()
+        @swap_context_detail_template =
+                _.template(@swap_context_detail_template_text)
 
     unhighlight_block: (block) =>
         block_rect_id = "#id_block_" + block.block_id
@@ -142,14 +146,30 @@ class PlacementController extends EchoJsonController
                 .data(reverse_swap_contexts)
         current_info.exit().remove()
         current_info.enter()
-                .append("div")
+                .append("tr")
                     .attr("class", "swap_context_info")
 
         current_infos = d3.selectAll(".swap_context_info")
-        current_infos.html((d, i) =>
+            .html((d, i) =>
                 @swap_context_template(d)
             )
+
+        detailed_info = d3.select("#swap_context_current")
+                .selectAll(".swap_context_info_detail")
+                    .data(reverse_swap_contexts)
+        detailed_info.exit().remove()
+        detailed_info.enter()
+                .append("div")
+                    .attr("class", "swap_context_info_detail")
+
+        detailed_infos = d3.selectAll(".swap_context_info_detail")
+            .html((d, i) =>
+                @swap_context_detail_template(d)
+            )
             .each((d, i) ->
+                $("#myModal_" + d.index).draggable({
+                    handle: ".modal-header"
+                })
                 id = "#id_swap_context_tbody_" + d.index
                 tbody = d3.select(id)
                 if "_sorted_keys" of d
@@ -173,9 +193,6 @@ class PlacementController extends EchoJsonController
                     obj.goto(d.index)
                 )
             )
-
-        current_info = d3.select("#swap_context_current")
-            .selectAll(".swap_context_info")
 
     current_swap_context: () ->
         if @swap_context_i > @swap_contexts.length - 1

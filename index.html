@@ -4,7 +4,9 @@
 <title>NullMQ placement server example</title>
 <link href="/dist/bootstrap/css/bootstrap.min.css" rel="stylesheet">
 <link href="/dist/bootstrap/css/bootstrap-responsive.css" rel="stylesheet">
+<link href="/dist/lib/jquery-ui.css" rel="stylesheet">
 <script type="text/javascript" src="/dist/lib/jquery-latest.js"></script>
+<script type="text/javascript" src="/dist/lib/jquery-ui.js"></script>
 <script type="text/javascript" src="/dist/lib/coffee-script.js"></script>
 <script type="text/javascript" src="/dist/lib/d3.v2.js"></script>
 <script type="text/javascript" src="/dist/lib/underscore-min.js"></script>
@@ -34,7 +36,18 @@
     <div class="span4">
       <div class="row">
         <h3>Swap context:</h3>
-        <div id="swap_context_current" class="span4 visible" style="height: 500; overflow: auto;"></div>
+        <div class="span4 visible" style="height: 500; overflow: auto">
+          <table class="table-condensed table-bordered table-striped">
+            <tbody id="swap_context_current" style="font-size: 80%;">
+                <th>i</th>
+                <th>+</th>
+                <th>-</th>
+                <th>Total</th>
+                <th>Goto</th>
+                <th>&nbsp;</th>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
     <div class="span4">
@@ -62,23 +75,39 @@
             </tbody>
         </table>
     </div>
-    <div id="swap_context_template" class="invisible" >
+    <table class="invisible" >
     <!-- The contents of the tag are used as a template to format an info table
       for a block -->
-      <p>
-        <a href="#" data-toggle="collapse" data-target="#swap_context_{{ index }}">
-          ({{ index }})
-          accepted: {{ accepted_count }}
-          skipped: {{ skipped_count }}
-          total_count: {{ participated_count }}/{{ total_count }}
-        </a>
-        <a href="#" class="btn btn-small" id="id_swap_context_select_{{ index }}">select</a>
-      </p>
-      <div class="collapse" id="swap_context_{{ index }}">
+        <tbody><tr id="swap_context_template">
+          <th style="text-align: center">{{ index }}</th>
+          <td style="text-align: center">{{ accepted_count }}</td>
+          <td style="text-align: center">{{ skipped_count }}</td>
+          <td style="text-align: center">{{ participated_count }}/{{ total_count }}</td>
+          <td>
+            <a href="#" class="btn btn-mini" id="id_swap_context_select_{{ index }}">select</a>
+          </td>
+          <td>
+            <a href="#myModal_{{ index }}" role="button" class="btn btn-mini" data-toggle="modal">details</a>
+          </td>
+        </tr></tbody>
+    </table>
+
+    <div id="swap_context_detail_template" class="invisible" >
+      <div id="myModal_{{ index }}" data-backdrop="false" class="span4 modal hide" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <strong>Swap context {{ index }}</strong>
+      </div>
+      <div id="swap_context_{{ index }}" class="modal-body">
         <table class="table-condensed table-bordered table-striped table-hover">
           <tbody id="id_swap_context_tbody_{{ index }}"></tbody>
         </table>
       </div>
+      </div>
+    </div>
+
+
+
     </div>
   </div>
 </section>
