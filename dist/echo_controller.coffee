@@ -221,14 +221,19 @@ class PlacementController extends EchoJsonController
            @goto(@swap_contexts.length - 1)
 
     next: (iter_count=1, append=true) =>
-        if @swap_context_i > 0
+        if @swap_context_i >= 0
             c = @current_swap_context()
-        if append and (@swap_context_i < 0 or
-                @swap_context_i == @swap_contexts.length - 1 and
-                @iterate_action == @iterate_actions.REQUEST_SWAPS)
-            # There is no `next` stored `SwapContext` available, so iterate to
-            # create a new one.
-            @swap_contexts.push(new SwapContext(@placement_grid.block_positions))
+        if append and @iterate_action == @iterate_actions.REQUEST_SWAPS and
+                (@swap_context_i < 0 or
+                        @swap_context_i == @swap_contexts.length - 1)
+            if @swap_context_i >= 0 and c.all.length <= 0
+                # The current swap context does not have any swaps assigned to
+                # it, so reuse it rather than creating a new one.
+                null
+            else
+                # There is no `next` stored `SwapContext` available, so iterate to
+                # create a new one.
+                @swap_contexts.push(new SwapContext(@placement_grid.block_positions))
             @swap_context_i = @swap_contexts.length - 1
             @iterate_swap_eval((() =>
                 @apply_swap_links()
