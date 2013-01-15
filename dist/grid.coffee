@@ -197,10 +197,6 @@ class PlacementGrid
         @template = _.template(@template_text)
         @selected_container = d3.select("#placement_info_selected")
         @block_positions = null
-        @batch_block_positions = new Array()
-        @batch_color_num = 2
-        @batch_styles = new Array()
-        @batch_i = 0
         @swap_infos = new Array()
 
     update_zoom: (translate, scale) =>
@@ -228,16 +224,6 @@ class PlacementGrid
                 selected: false
                 fill_opacity: 0.5
                 stroke_width: 1
-                batch_index: @batch_i
-                fill_color: @batch_styles[@batch_i].fill_color
-            if @batch_i > 0
-                old_item = @batch_block_positions[@batch_i - 1][i]
-                if old_item.x == item.x and old_item.y == item.y
-                    item.fill_color = old_item.fill_color
-                    item.moved = false
-                else
-                    item.moved = true
-                item.selected = old_item.selected
             data.push(item)
         @dims.x.max = Math.max(d3.max(item.x for item in data), @dims.x.max)
         @dims.x.min = Math.min(d3.min(item.x for item in data), @dims.x.min)
@@ -305,23 +291,16 @@ class PlacementGrid
         infos.html((d) -> placement_grid.template(d))
 
     set_raw_block_positions: (raw_block_positions) ->
-        @batch_styles.push({"fill_color": @colors(@batch_color_num)})
         @set_block_positions(@translate_block_positions(raw_block_positions))
 
     set_block_positions: (block_positions) ->
-        @batch_i = @batch_block_positions.length
-        console.log("block_positions", @batch_block_positions)
-        @batch_color_num += 3
         @block_positions = block_positions
-        @batch_block_positions.push(@block_positions)
         @update_cell_data()
         # Skip cell formatting until we can verify that it is working as
         # expected.
         #@update_cell_formats()
         @update_cell_positions()
         @update_selected_block_info()
-        console.log("batch_styles", @batch_styles)
-        @batch_styles.push({"fill_color": @colors(@batch_color_num)})
 
     update_cell_data: () ->
         # Each tag of class `cell` is an SVG group tag.  Each such group
