@@ -70,7 +70,7 @@ class PlacementController extends EchoJsonController
 
     on_swap_context_changed: () =>
         current_info = d3.select("#id_swap_context_current")
-            .html("<p><strong>Current index:</strong> " + @swap_context_i + "</p>")
+            .html(@swap_context_i)
         d3.selectAll(".swap_context_row").attr("class", "swap_context_row")
         id_text = "#id_swap_context_row_" + @swap_context_i
         test = d3.selectAll(id_text).attr("class", "swap_context_row alert alert-info")
@@ -152,11 +152,13 @@ class PlacementController extends EchoJsonController
             ["index", "accepted_count", "skipped_count", "total_count"]
 
     update_swap_context_info: () =>
-        # List detailed information about each swap context
+        # Update table where each row shows a summary of a swap context, along
+        # with a button to display detailed information about the corresponding
+        # `SwapContext`.  A `select` button is also included in each row to
+        # change the GUI state to reflect the corresponding swap context state
+        # (before applying the swaps from the context).
         obj = @
-        # Update current block info table
         reverse_swap_contexts = (@extract_data(c, i) for c, i in @swap_contexts)
-        #reverse_swap_contexts.reverse()
         @_last_debug_save = reverse_swap_contexts
 
         info_list = d3.select("#swap_context_list")
@@ -178,6 +180,11 @@ class PlacementController extends EchoJsonController
                     console.log("swap_context_row", d, i, d.index)
                     @swap_context_template(d)
                 )
+                .each((d, i) ->
+                    d3.select("#id_swap_context_select_" + d.index).on("click", () ->
+                        obj.goto(d.index)
+                    )
+                )
 
         detailed_info = d3.select("#swap_context_list")
                 .selectAll(".swap_context_info_detail")
@@ -191,16 +198,26 @@ class PlacementController extends EchoJsonController
             .html((d, i) =>
                 @swap_context_detail_template(d)
             )
+            # Add a details table for each swap context to the corresponding
+            # modal element.
             .each((d, i) ->
+                # Allow each modal element to be dragged by its header
                 $("#myModal_" + d.index).draggable({
                     handle: ".modal-header"
                 })
                 id = "#id_swap_context_tbody_" + d.index
                 tbody = d3.select(id)
                 if "_sorted_keys" of d
+                    # The data object, `d`, includes the attribute
+                    # `_sorted_keys`, only include the key/value pairs for the
+                    # included keys in the details table.
                     keys = d._sorted_keys()
                 else
+                    # The data object, `d`, does not include the attribute
+                    # `_sorted_keys`, so include all key/value pairs from `d`
+                    # in the details table for keys that do not start with `_`.
                     keys = Object.keys(d)
+
                 for k in keys
                     try
                         if k[0] == "_"
@@ -214,9 +231,6 @@ class PlacementController extends EchoJsonController
                     row.append("td")
                         .attr("id", "id_swap_context_" + d.index + "_" + k)
                         .html(v)
-                d3.select("#id_swap_context_select_" + d.index).on("click", () ->
-                    obj.goto(d.index)
-                )
             )
 
     current_swap_context: () ->

@@ -35,17 +35,18 @@
     <div id="chart" class="span8 visible"></div>
     <div class="span4">
       <div class="row">
-        <h4>Swap context:</h4>
-        <div id="id_swap_context_current"></div>
-        <div class="span4 visible" style="height: 500; overflow: auto">
-          <table class="table-condensed table-bordered table-striped">
+        <div style="vertical-align: middle">
+          <h3 class="pull-left">Swap context: </h3>
+          <h1 id="id_swap_context_current" class="pull-right"></h1>
+        </div>
+        <div class="span4 visible" style="height: 500; overflow: auto;">
+          <table class="table table-condensed table-bordered table-striped">
             <tbody id="swap_context_list" style="font-size: 80%;">
-                <th>i</th>
-                <th>+</th>
-                <th>-</th>
-                <th>Total</th>
-                <th>Goto</th>
-                <th>&nbsp;</th>
+                <th id="id_swap_context_index_header" title="Swap context index">i</th>
+                <th id="id_swap_context_accepted_header" title="Accepted swaps count">+</th>
+                <th id="id_swap_context_skipped_header" title="Skipped swaps count">-</th>
+                <th id="id_swap_context_total_header" title="Evaluated swaps/total swaps">Total</th>
+                <th id="id_swap_context_actions_header" title="Perform actions on swap context">Actions</th>
             </tbody>
           </table>
         </div>
@@ -84,10 +85,8 @@
           <td id="id_swap_context_row_accepted_{{ index }}" class="swap_context_row_accepted" style="text-align: center">{{ accepted_count }}</td>
           <td id="id_swap_context_row_skipped_{{ index }}" class="swap_context_row_skipped" style="text-align: center">{{ skipped_count }}</td>
           <td id="id_swap_context_row_total_{{ index }}" class="swap_context_row_total" style="text-align: center">{{ participated_count }}/{{ total_count }}</td>
-          <td>
+          <td id="id_swap_context_row_actions_{{ index }}">
             <a href="#" class="btn btn-mini" id="id_swap_context_select_{{ index }}">select</a>
-          </td>
-          <td>
             <a href="#myModal_{{ index }}" role="button" class="btn btn-mini" data-toggle="modal">details</a>
           </td>
         </tr></tbody>
@@ -139,6 +138,8 @@
     Mousetrap.bind('space', () -> placement_controller.next())
     Mousetrap.bind('n', () -> placement_controller.next())
     Mousetrap.bind('p', () -> placement_controller.previous())
+    Mousetrap.bind('down', () -> placement_controller.previous())
+    Mousetrap.bind('up', () -> placement_controller.next())
     Mousetrap.bind('left', () -> placement_controller.previous())
     Mousetrap.bind('right', () -> placement_controller.next())
     Mousetrap.bind('a', () -> placement_controller.apply_swap_results())
