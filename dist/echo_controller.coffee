@@ -60,6 +60,21 @@ class PlacementController extends EchoJsonController
         @swap_context_detail_template =
                 _.template(@swap_context_detail_template_text)
 
+    decrement_swap_context_i: () =>
+        @swap_context_i -= 1
+        @on_swap_context_changed()
+
+    increment_swap_context_i: () =>
+        @swap_context_i += 1
+        @on_swap_context_changed()
+
+    on_swap_context_changed: () =>
+        current_info = d3.select("#id_swap_context_current")
+            .html("<p><strong>Current index:</strong> " + @swap_context_i + "</p>")
+        d3.selectAll(".swap_context_row").attr("class", "swap_context_row")
+        id_text = "#id_swap_context_row_" + @swap_context_i
+        test = d3.selectAll(id_text).attr("class", "swap_context_row alert alert-info")
+
     unhighlight_block: (block) =>
         block_rect_id = "#id_block_" + block.block_id
         block_rect = d3.select(block_rect_id)
@@ -125,36 +140,46 @@ class PlacementController extends EchoJsonController
         else
             @do_request({"command": "iter.next"}, on_recv)
 
+    extract_data: (d, i) =>
+        index: i
+        accepted_count: d.accepted_count()
+        skipped_count: d.skipped_count()
+        total_count: d.total_count()
+        participated_count: d.participated_count()
+        swap_contexts_count: @swap_contexts.length
+        reverse_index: @swap_contexts.length - i - 1
+        _sorted_keys: () ->
+            ["index", "accepted_count", "skipped_count", "total_count"]
+
     update_swap_context_info: () =>
         # List detailed information about each swap context
         obj = @
         # Update current block info table
-        extract_data = (d, i) =>
-            index: i
-            accepted_count: d.accepted_count()
-            skipped_count: d.skipped_count()
-            total_count: d.total_count()
-            participated_count: d.participated_count()
-            swap_contexts_count: @swap_contexts.length
-            reverse_index: @swap_contexts.length - i - 1
-            _sorted_keys: () ->
-                ["index", "accepted_count", "skipped_count", "total_count"]
-        reverse_swap_contexts = (extract_data(c, i) for c, i in @swap_contexts)
+        reverse_swap_contexts = (@extract_data(c, i) for c, i in @swap_contexts)
         reverse_swap_contexts.reverse()
-        current_info = d3.select("#swap_context_current")
-                .selectAll(".swap_context_info")
-                .data(reverse_swap_contexts)
-        current_info.exit().remove()
-        current_info.enter()
+        @_last_debug_save = reverse_swap_contexts
+
+        info_list = d3.select("#swap_context_list")
+            .selectAll(".swap_context_row")
+                .data(reverse_swap_contexts, (d) -> d.index)
+        info_list.exit().remove()
+        info_list.enter()
                 .append("tr")
-                    .attr("class", "swap_context_info")
+                    .attr("id", (d, i) ->
+                        id_text = "id_swap_context_row_" + d.index
+                        console.log("append new row with id:", d, d.index, d.reverse_index, id_text)
+                        return id_text
+                    )
+                    .attr("class", "swap_context_row")
 
-        current_infos = d3.selectAll(".swap_context_info")
-            .html((d, i) =>
-                @swap_context_template(d)
-            )
+        info_list = d3.select("#swap_context_list")
+            .selectAll(".swap_context_row")
+                .html((d, i) =>
+                    console.log("swap_context_row", d, i, d.index)
+                    @swap_context_template(d)
+                )
 
-        detailed_info = d3.select("#swap_context_current")
+        detailed_info = d3.select("#swap_context_list")
                 .selectAll(".swap_context_info_detail")
                     .data(reverse_swap_contexts)
         detailed_info.exit().remove()
@@ -201,6 +226,7 @@ class PlacementController extends EchoJsonController
                 code: -100
             throw error
         current_swap_context = @swap_contexts[@swap_context_i]
+
         @_previous_swap_context = current_swap_context
         return current_swap_context
 
@@ -277,7 +303,7 @@ class PlacementController extends EchoJsonController
         if @swap_context_i > 0
             c = @current_swap_context()
             if @iterate_action == @iterate_actions.APPLY_SWAPS
-                @swap_context_i -= 1
+                @decrement_swap_context_i()
                 c = @current_swap_context()
                 @apply_swap_links()
                 @iterate_action = @iterate_actions.REQUEST_SWAPS
@@ -289,6 +315,7 @@ class PlacementController extends EchoJsonController
     goto: (swap_context_i) =>
         if swap_context_i >= 0
             @swap_context_i = swap_context_i
+            @on_swap_context_changed()
             @apply_swap_links()
             @apply_swap_results()
             @iterate_action = @iterate_actions.REQUEST_SWAPS
@@ -318,12 +345,13 @@ class PlacementController extends EchoJsonController
             @iterate_swap_eval((() =>
                 @apply_swap_links()
                 @update_swap_context_info()
+                @on_swap_context_changed()
                 @iterate_action = @iterate_actions.APPLY_SWAPS
             ), iter_count)
         else if @iterate_action == @iterate_actions.REQUEST_SWAPS
             # The next `SwapContext` is already completed and cached, so simply
             # update state.
-            @swap_context_i += 1
+            @increment_swap_context_i()
             @apply_swap_links()
             @iterate_action = @iterate_actions.APPLY_SWAPS
         else
