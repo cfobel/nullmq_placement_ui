@@ -156,24 +156,24 @@ class PlacementController extends EchoJsonController
         obj = @
         # Update current block info table
         reverse_swap_contexts = (@extract_data(c, i) for c, i in @swap_contexts)
-        reverse_swap_contexts.reverse()
+        #reverse_swap_contexts.reverse()
         @_last_debug_save = reverse_swap_contexts
 
         info_list = d3.select("#swap_context_list")
             .selectAll(".swap_context_row")
-                .data(reverse_swap_contexts, (d) -> d.index)
+                .data(reverse_swap_contexts, (d) -> d.reverse_index)
         info_list.exit().remove()
         info_list.enter()
                 .append("tr")
-                    .attr("id", (d, i) ->
-                        id_text = "id_swap_context_row_" + d.index
-                        console.log("append new row with id:", d, d.index, d.reverse_index, id_text)
-                        return id_text
-                    )
                     .attr("class", "swap_context_row")
 
         info_list = d3.select("#swap_context_list")
             .selectAll(".swap_context_row")
+                .attr("id", (d, i) ->
+                    id_text = "id_swap_context_row_" + d.index
+                    console.log("append new row with id:", d, d.index, d.reverse_index, id_text)
+                    return id_text
+                )
                 .html((d, i) =>
                     console.log("swap_context_row", d, i, d.index)
                     @swap_context_template(d)
