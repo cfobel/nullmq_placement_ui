@@ -19,6 +19,54 @@ class Block
             .style("stroke-width", d.stroke_width)
 
 
+class Curve
+    constructor: (@_source=null, @_target=null, @_translate=null) ->
+        if @_translate == null
+            @_translate = (coords) -> coords
+    translate: (t=null) =>
+        if t != null
+            @_translate = t
+            @
+        else
+            @_translate
+    target: (t=null) =>
+        if t != null
+            @_target = t
+            @
+        else
+            @_target
+    source: (s=null) =>
+        if s != null
+            @_source = s
+            @
+        else
+            @_source
+    d: () =>
+        coords =
+            source: @translate()(@source())
+            target: @translate()(@target())
+        if @source().y != @target().y and @source().x != @target().x
+            path_text = d3.svg.diagonal()
+                .source(coords.source)
+                .target(coords.target)()
+        else
+            # The source and target share the same row or column.  Use an arc
+            # to connect them rather than a diagonal.  A diagonal degrades to a
+            # straight line in this case, making it difficult to distinguish
+            # overlapping links.
+            dx = coords.target.x - coords.source.x
+            dy = coords.target.y - coords.source.y
+            dr = Math.sqrt(dx * dx + dy * dy)
+            if @source().y == @target().y and @source().x % 2 == 0
+                flip = 1
+            else if @source().x == @target().x and @source().y % 2 == 0
+                flip = 1
+            else
+                flip = 0
+            path_text = "M" + coords.source.x + "," + coords.source.y + "A" + dr + "," + dr + " 0 0," + flip + " " + coords.target.x + "," + coords.target.y
+        return path_text
+
+
 class SwapContext
     # Each `SwapContext` instance represents a set of swap configurations that
     # were generated.  In addition to storing each set of swaps, the
@@ -47,7 +95,6 @@ class SwapContext
     skipped_count: () => Object.keys(@skipped).length
     participated_count: () => Object.keys(@participated).length
     total_count: () => @all.length
-    connect: d3.svg.diagonal()
     process_swap: (swap_info) =>
         # Record information for current swap in `all` array, as well
         # as indexed by:
@@ -121,8 +168,9 @@ class SwapContext
                 from_coords = x: from_x, y: from_y
                 [from_x, from_y] = d.swap_config.coords.to
                 to_coords = x: from_x, y: from_y
-                @connect.source(placement_grid.cell_center(from_coords))
-                    .target(placement_grid.cell_center(to_coords))()
+                curve = new Curve(from_coords, to_coords, placement_grid.cell_center)
+                @_latest_curve = curve
+                curve.d()
             )
 
     apply_swaps: () ->
