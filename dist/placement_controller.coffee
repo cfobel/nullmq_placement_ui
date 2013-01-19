@@ -39,24 +39,23 @@ class PlacementController extends EchoJsonController
         id_text = "#id_swap_context_row_" + @swap_context_i
         test = d3.selectAll(id_text).attr("class", "swap_context_row alert alert-info")
 
-    unhighlight_block: (block) =>
-        block_rect_id = "#id_block_" + block.block_id
-        block_rect = d3.select(block_rect_id)
-        if not (block_rect == null)
-            block_rect.style("fill-opacity", block.fill_opacity)
-                        .style("stroke-width", block.stroke_width)
-
-    highlight_block: (block) =>
-        block_rect_id = "#id_block_" + block.block_id
-        block_rect = d3.select(block_rect_id)
-        if not (block_rect == null)
-            block_rect.style("fill-opacity", 1.0).style("stroke-width", 6)
+    select_block_elements_by_ids: (block_ids) =>
+        console.log(JSON.stringify(block_ids))
+        block_element_ids = ("#id_block_" + i for i in block_ids)
+        return @placement_grid.grid.selectAll(block_element_ids.join(","))
 
     highlight_block_swaps: (block_id) =>
-        @apply_to_block_swaps(block_id, @highlight_block)
+        if @swap_context_i >= 0
+            c = @current_swap_context()
+            c.update_block_formats(@placement_grid)
+            @select_block_elements_by_ids(c.connected_block_ids(block_id))
+                .style("fill-opacity", "1.0")
+                .style("stroke-width", 3)
 
     unhighlight_block_swaps: (block_id) =>
-        @apply_to_block_swaps(block_id, @unhighlight_block)
+        if @swap_context_i >= 0
+            c = @current_swap_context()
+            c.update_block_formats(@placement_grid)
 
     apply_to_block_swaps: (block_id, callback) =>
         try
@@ -137,11 +136,11 @@ class PlacementController extends EchoJsonController
             .selectAll(".swap_context_row")
                 .attr("id", (d, i) ->
                     id_text = "id_swap_context_row_" + d.index
-                    console.log("append new row with id:", d, d.index, d.reverse_index, id_text)
+                    #console.log("append new row with id:", d, d.index, d.reverse_index, id_text)
                     return id_text
                 )
                 .html((d, i) =>
-                    console.log("swap_context_row", d, i, d.index)
+                    #console.log("swap_context_row", d, i, d.index)
                     @swap_context_template(d)
                 )
                 .each((d, i) ->
@@ -271,6 +270,7 @@ class PlacementController extends EchoJsonController
             swap_context = @current_swap_context()
             swap_context.set_swap_link_data(@placement_grid)
             swap_context.update_link_formats(@placement_grid)
+            swap_context.update_block_formats(@placement_grid)
             @iterate_action = @iterate_actions.APPLY_SWAPS
         catch error
             # There is no current swap context, so do nothing

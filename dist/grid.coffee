@@ -4,7 +4,6 @@ class Block
     rect: () => d3.select("#" + @rect_id())
     mouseover: () =>
         @rect().style("fill-opacity", 1.0)
-            .style("stroke-width", 6)
         # Update current block info table
         current_info = d3.select("#placement_info_current")
                 .selectAll(".placement_info")
@@ -141,34 +140,65 @@ class SwapContext
             .style("opacity", 0)
         swap_links.exit().remove()
 
+    from_ids: (swap_dict, only_master=false) ->
+        (swap_info.swap_config.ids.from_ for swap_id,swap_info of swap_dict when swap_info.swap_config.ids.from_ >= 0 and (not only_master or swap_info.swap_config.master > 0))
+    to_ids: (swap_dict, only_master=false) -> (swap_info.swap_config.ids.to for swap_id,swap_info of swap_dict when swap_info.swap_config.ids.to >= 0 and (not only_master or swap_info.swap_config.master > 0))
+
+    block_element_ids: (block_ids) -> ("#id_block_" + id for id in block_ids)
+
+    accepted_count: () => Object.keys(@accepted).length
+
+    update_block_formats: (placement_grid) ->
+        g = placement_grid.grid
+        g.selectAll(".block")
+            .style("stroke-width", (d) -> if d.selected then 2 else 1)
+            .style("fill-opacity", (d) -> if d.selected then 1.0 else 0.5)
+
+        colorize = (block_ids, fill_color, opacity=null) =>
+            if block_ids.length <= 0
+                return
+            g.selectAll(@block_element_ids(block_ids).join(", "))
+              .transition()
+                .style("fill", fill_color)
+                .style("opacity", opacity ? 1.0)
+        colorize(@from_ids(@not_participated), "red", 0.5)
+        colorize(@to_ids(@skipped, true), "yellow")
+        colorize(@from_ids(@skipped, true), "darkorange")
+        colorize(@from_ids(@accepted, true), "darkgreen")
+        colorize(@to_ids(@accepted, true), "limegreen")
+
     update_link_formats: (placement_grid) ->
         # Update the style and end-point locations for each swap link.
         swap_links = placement_grid.grid.selectAll(".link")
+        curve = new Curve()
+        curve.translate(placement_grid.cell_center)
         swap_links.transition()
             .duration(200)
             .ease("cubic-in-out")
             .style("opacity", (d) ->
-                if d.swap_result.swap_accepted
+                if not d.swap_config.master and d.swap_config.participate
+                    return 0.0
+                else if d.swap_result.swap_accepted
                     return 0.9
                 else if not d.swap_config.participate
-                    return 0.25
-                else
                     return 0.35
+                else
+                    return 0.8
             )
             .style("stroke", (d) ->
                 if d.swap_result.swap_accepted
-                    return "#060"
+                    return "green"
                 else if not d.swap_config.participate
-                    return "#D00"
+                    return "red"
                 else
-                    return "#FFB300"
+                    return "gold"
             )
-            .attr("d", (d) =>
+        swap_links.attr("d", (d) =>
                 [from_x, from_y] = d.swap_config.coords.from_
                 from_coords = x: from_x, y: from_y
                 [from_x, from_y] = d.swap_config.coords.to
                 to_coords = x: from_x, y: from_y
-                curve = new Curve(from_coords, to_coords, placement_grid.cell_center)
+                curve.source(from_coords).target(to_coords)
                 @_latest_curve = curve
                 curve.d()
             )
@@ -178,11 +208,14 @@ class SwapContext
         # Update the block positions array based on the accepted swaps in the
         # current context.
         for swap_i,swap_info of @accepted
-            from_d = block_positions[swap_info.swap_config.ids.from_]
-            [from_d.x, from_d.y] = swap_info.swap_config.coords.to
-            to_d = block_positions[swap_info.swap_config.ids.to]
-            [to_d.x, to_d.y] = swap_info.swap_config.coords.from_
+            if swap_info.swap_config.master > 0
+                from_d = block_positions[swap_info.swap_config.ids.from_]
+                [from_d.x, from_d.y] = swap_info.swap_config.coords.to
+                to_d = block_positions[swap_info.swap_config.ids.to]
+                [to_d.x, to_d.y] = swap_info.swap_config.coords.from_
         return block_positions
+
+    connected_block_ids: (block_id) => (b.block_id for b in @connected_blocks(block_id))
 
     connected_blocks: (block_id) =>
         # Return list of blocks that are connected to the block with ID
@@ -193,15 +226,17 @@ class SwapContext
             # Highlight any blocks that involve the current block as the `from`
             # block id
             for swap_info in @by_from_block_id[block_id]
-                block = @block_positions[swap_info.swap_config.ids.to]
-                connected_blocks.push(block)
+                if swap_info.swap_config.ids.to >= 0
+                    block = @block_positions[swap_info.swap_config.ids.to]
+                    connected_blocks.push(block)
         else if block_id of @by_to_block_id
             # Highlight any blocks that involve the current block as the `to`
             # block id
             for swap_info in @by_to_block_id[block_id]
-                block = @block_positions[swap_info.swap_config.ids.from_]
-                connected_blocks.push(block)
-        return connected_blocks
+                if swap_info.swap_config.ids.to >= 0
+                    block = @block_positions[swap_info.swap_config.ids.from_]
+                    connected_blocks.push(block)
+        return _.uniq(connected_blocks)
 
 
 class PlacementGrid
