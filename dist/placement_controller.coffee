@@ -339,5 +339,15 @@ class PlacementController extends EchoJsonController
             if c.accepted_count() <= 0
                 @next(iter_count)
 
+    do_request: (message, on_recv) =>
+        _on_recv = (response) =>
+            #if ("error" of response) and response.error != null
+            if not ("result" of response) or ("error" of response) and
+                    response.error != null
+                error = new Error(response.error)
+                @_last_error = error
+                throw error
+            on_recv(response)
+        super message, _on_recv
 
 @PlacementController = PlacementController
