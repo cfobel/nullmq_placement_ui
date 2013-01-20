@@ -75,19 +75,27 @@ class PlacementController extends EchoJsonController
         return (s.swap_i for s in swaps)
 
     select_block_elements_by_ids: (block_ids) =>
-        block_element_ids = ("#id_block_" + i for i in block_ids)
-        return @placement_grid.grid.selectAll(block_element_ids.join(","))
+        if block_ids.length > 0
+            block_element_ids = ("#id_block_" + i for i in block_ids)
+            return @placement_grid.grid.selectAll(block_element_ids.join(","))
+        else
+            # Empty selection
+            return d3.select()
 
     highlight_block_swaps: (block_ids) =>
-        console.log("highlight_block_swaps", block_ids)
         if @swap_context_i >= 0 and block_ids.length
             c = @current_swap_context()
-            block_ids = c.deep_connected_block_ids(block_ids)
+            connected_block_ids = c.deep_connected_block_ids(block_ids, false)
             @placement_grid.grid.selectAll(".block")
-              .filter((d) -> not (d.block_id in block_ids))
+              .filter((d) -> not (d.block_id in block_ids) and not (d.block_id in connected_block_ids))
               .style("opacity", 0.2)
+              #console.log("highlight_block_swaps", block_ids, connected_block_ids)
             @select_block_elements_by_ids(block_ids)
                 .style("opacity", 1.0)
+                .style("fill-opacity", 1.0)
+                .style("stroke-width", 3)
+            @select_block_elements_by_ids(connected_block_ids)
+                .style("opacity", 0.65)
                 .style("fill-opacity", 1.0)
                 .style("stroke-width", 3)
             @placement_grid.grid.selectAll(".link")
@@ -97,7 +105,7 @@ class PlacementController extends EchoJsonController
                 .style("opacity", 1)
 
     unhighlight_block_swaps: (block_ids) =>
-        console.log("unhighlight_block_swaps", block_ids)
+        #console.log("unhighlight_block_swaps", block_ids)
         if @swap_context_i >= 0
             c = @current_swap_context()
             c.update_block_formats(@placement_grid)
@@ -124,9 +132,7 @@ class PlacementController extends EchoJsonController
         block_ids = @placement_grid.selected_block_ids()
         if @swap_context_i >= 0
             c = @current_swap_context()
-            block_ids = block_ids.concat(c.connected_block_ids(i))
-        if block_ids.length
-            @highlight_block_swaps(_.uniq(block_ids))
+            @highlight_block_swaps(block_ids.concat([i]))
 
         # Update current block info table
         current_info = d3.select("#placement_info_current")

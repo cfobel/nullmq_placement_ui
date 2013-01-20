@@ -215,12 +215,16 @@ class SwapContext
 
     connected_block_ids: (block_id) => (b.block_id for b in @connected_blocks(block_id))
 
-    deep_connected_block_ids: (block_ids_input) =>
-        block_ids = block_ids_input[..]
-        for i in [0..block_ids.length]
-            block_id = block_ids[i]
-            block_ids = block_ids.concat(@connected_block_ids(block_id))
-        return _.uniq(block_ids)
+    deep_connected_block_ids: (block_ids_input, include_initial=true) =>
+        # Store block_ids in dictionary-like object for fast membership test
+        block_ids = {} #block_ids_input[..]
+        connected_block_ids = block_ids_input[..]
+        for block_id in block_ids_input
+            block_ids[block_id] = null
+            ids = @connected_block_ids(block_id)
+            connected_block_ids = connected_block_ids.concat(ids)
+        connected_block_ids = _.uniq(connected_block_ids)
+        return (+i for i in connected_block_ids when include_initial or not (i of block_ids))
 
     connected_blocks: (block_id) =>
         # Return list of blocks that are connected to the block with ID
