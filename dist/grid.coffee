@@ -207,10 +207,12 @@ class SwapContext
         # current context.
         for swap_i,swap_info of @accepted
             if swap_info.swap_config.master > 0
-                from_d = block_positions[swap_info.swap_config.ids.from_]
-                [from_d.x, from_d.y] = swap_info.swap_config.coords.to
-                to_d = block_positions[swap_info.swap_config.ids.to]
-                [to_d.x, to_d.y] = swap_info.swap_config.coords.from_
+                if swap_info.swap_config.ids.from_ >= 0
+                    from_d = block_positions[swap_info.swap_config.ids.from_]
+                    [from_d.x, from_d.y] = swap_info.swap_config.coords.to
+                if swap_info.swap_config.ids.to >= 0
+                    to_d = block_positions[swap_info.swap_config.ids.to]
+                    [to_d.x, to_d.y] = swap_info.swap_config.coords.from_
         return block_positions
 
     connected_block_ids: (block_id) => (b.block_id for b in @connected_blocks(block_id))

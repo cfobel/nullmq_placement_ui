@@ -306,6 +306,7 @@ class PlacementController extends EchoJsonController
             try
                 block_positions = swap_context.apply_swaps()
             catch e
+                console.log("error applying swaps", e, e.stack)
                 @load_placement()
                 return
             moved_count = 0
