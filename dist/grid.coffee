@@ -133,6 +133,7 @@ class SwapContext
         swap_links.enter()
             .append("svg:path")
             .attr("class", "link")
+            .attr("id", (d) -> "id_swap_link_" + d.swap_i)
             .style("fill", "none")
             .style("pointer-events", "none")
             .style("stroke", "none")
@@ -158,7 +159,6 @@ class SwapContext
             if block_ids.length <= 0
                 return
             g.selectAll(@block_element_ids(block_ids).join(", "))
-              .transition()
                 .style("fill", fill_color)
                 .style("opacity", opacity ? 1.0)
         colorize(@from_ids(@not_participated), "red", 0.5)
@@ -172,9 +172,7 @@ class SwapContext
         swap_links = placement_grid.grid.selectAll(".link")
         curve = new Curve()
         curve.translate(placement_grid.cell_center)
-        swap_links.transition()
-            .duration(200)
-            .ease("cubic-in-out")
+        swap_links.style("stroke-width", 1)
             .style("opacity", (d) ->
                 if not d.swap_config.master and d.swap_config.participate
                     return 0.0

@@ -39,23 +39,67 @@ class PlacementController extends EchoJsonController
         id_text = "#id_swap_context_row_" + @swap_context_i
         test = d3.selectAll(id_text).attr("class", "swap_context_row alert alert-info")
 
+    select_link_elements_by_block_ids: (block_ids, only_master=true, accepted=true, skipped=true, non_participate=true) =>
+        swap_ids = @swap_ids_for_block_ids(block_ids, only_master, accepted, skipped, non_participate)
+        if swap_ids.length > 0
+            link_element_ids = ("#id_swap_link_" + i for i in swap_ids)
+            return @placement_grid.grid.selectAll(link_element_ids.join(","))
+        else
+            return d3.select()
+
+    swap_ids_for_block_ids: (block_ids, only_master=true, accepted=true, skipped=true, non_participate=true) =>
+        swap_ids_dict = {}
+        for block_id in block_ids
+            swap_ids = @swap_ids_for_block_id(block_id, only_master, accepted, skipped, non_participate)
+            for swap_id in swap_ids
+                if swap_id of swap_ids_dict
+                    swap_ids_dict[swap_id] += 1
+                else
+                    swap_ids_dict[swap_id] = 1
+        swap_ids = (k for k,v of swap_ids_dict)
+        return swap_ids
+
+    swap_ids_for_block_id: (block_id, only_master=true, accepted=true, skipped=true, non_participate=true) =>
+        c = @current_swap_context()
+        swaps = []
+        for s in c.all when s.swap_config.ids.from_ == block_id or s.swap_config.ids.to == block_id
+            [p, a] = [s.swap_config.participate, s.swap_result.swap_accepted]
+            if not s.swap_config.master > 0 and only_master
+                continue
+            if a and accepted
+               swaps.push(s)
+            else if not a and p and skipped
+               swaps.push(s)
+            else if non_participate and not p
+               swaps.push(s)
+        return (s.swap_i for s in swaps)
+
     select_block_elements_by_ids: (block_ids) =>
-        console.log(JSON.stringify(block_ids))
         block_element_ids = ("#id_block_" + i for i in block_ids)
         return @placement_grid.grid.selectAll(block_element_ids.join(","))
 
     highlight_block_swaps: (block_id) =>
         if @swap_context_i >= 0
             c = @current_swap_context()
-            c.update_block_formats(@placement_grid)
-            @select_block_elements_by_ids(c.connected_block_ids(block_id))
-                .style("fill-opacity", "1.0")
+            connected_block_ids = c.connected_block_ids(block_id)
+            @placement_grid.grid.selectAll(".block")
+              .filter((d) -> not (d.block_id in connected_block_ids))
+              .style("opacity", 0.2)
+            @select_block_elements_by_ids(connected_block_ids)
+                .style("opacity", 1.0)
+                .style("fill-opacity", 1.0)
                 .style("stroke-width", 3)
+            @placement_grid.grid.selectAll(".link")
+                .style("opacity", 0.1)
+            @select_link_elements_by_block_ids(connected_block_ids)
+                .style("stroke-width", 2)
+                .style("opacity", 1)
 
     unhighlight_block_swaps: (block_id) =>
         if @swap_context_i >= 0
             c = @current_swap_context()
             c.update_block_formats(@placement_grid)
+            c.update_link_formats(@placement_grid)
 
     apply_to_block_swaps: (block_id, callback) =>
         try
@@ -136,11 +180,9 @@ class PlacementController extends EchoJsonController
             .selectAll(".swap_context_row")
                 .attr("id", (d, i) ->
                     id_text = "id_swap_context_row_" + d.index
-                    #console.log("append new row with id:", d, d.index, d.reverse_index, id_text)
                     return id_text
                 )
                 .html((d, i) =>
-                    #console.log("swap_context_row", d, i, d.index)
                     @swap_context_template(d)
                 )
                 .each((d, i) ->
