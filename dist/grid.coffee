@@ -152,8 +152,8 @@ class SwapContext
     update_block_formats: (placement_grid) ->
         g = placement_grid.grid
         g.selectAll(".block")
-            .style("stroke-width", (d) -> if d.selected then 2 else 1)
-            .style("fill-opacity", (d) -> if d.selected then 1.0 else 0.5)
+            .style("stroke-width", (d) -> if placement_grid.selected(d.block_id) then 2 else 1)
+            .style("fill-opacity", (d) -> if placement_grid.selected(d.block_id) then 1.0 else 0.5)
 
         colorize = (block_ids, fill_color, opacity=null) =>
             if block_ids.length <= 0
@@ -215,6 +215,13 @@ class SwapContext
 
     connected_block_ids: (block_id) => (b.block_id for b in @connected_blocks(block_id))
 
+    deep_connected_block_ids: (block_ids_input) =>
+        block_ids = block_ids_input[..]
+        for i in [0..block_ids.length]
+            block_id = block_ids[i]
+            block_ids = block_ids.concat(@connected_block_ids(block_id))
+        return _.uniq(block_ids)
+
     connected_blocks: (block_id) =>
         # Return list of blocks that are connected to the block with ID
         # `block_id` and that were involved involved in any swaps within the
@@ -273,7 +280,7 @@ class PlacementGrid
         @selected_fill_color_num = 8
         @io_fill_color = @colors(1)
         @clb_fill_color = @colors(9)
-        @selected_blocks = {}
+        @_selected_blocks = {}
         _.templateSettings =
           interpolate: /\{\{(.+?)\}\}/g
         @template_text = d3.select("#placement_info_template").html()
@@ -336,38 +343,39 @@ class PlacementGrid
     cell_center: (d) =>
         position = @cell_position d
         x: position.x + 0.5 * @cell_width(), y: position.y + 0.5 * @cell_height()
+
     clear_selection: () ->
-        for block_id,block of @selected_blocks
-            block.selected = false
-        @selected_blocks = {}
+        @_selected_blocks = {}
         @update_selected_block_info()
         # Skip cell formatting until we can verify that it is working as
         # expected.
         #@update_cell_formats()
 
     select_block: (d) ->
-        @selected_blocks[d.block_id] = d
+        @_selected_blocks[d.block_id] = null
         @update_selected_block_info()
         # Skip cell formatting until we can verify that it is working as
         # expected.
         #@update_cell_formats()
 
     deselect_block: (d) ->
-        delete @selected_blocks[d.block_id]
+        delete @_selected_blocks[d.block_id]
         @update_selected_block_info()
         # Skip cell formatting until we can verify that it is working as
         # expected.
         #@update_cell_formats()
 
-    selected_block_values: () -> (@block_positions[block_id] for block_id,block of @selected_blocks)
+    selected_block_ids: () -> +v for v in Object.keys(@_selected_blocks)
+
+    selected: (block_id) -> block_id of @_selected_blocks
 
     update_selected_block_info: () ->
-        block_objs = @selected_block_values()
+        data = (@block_positions[block_id] for block_id in @selected_block_ids())
         infos = @selected_container.selectAll(".placement_info")
-                .data(block_objs, (d) -> d.block_id)
+            .data(data, (d) -> d.block_id)
         infos.enter()
-                .append("div")
-                .attr("class", "placement_info")
+          .append("div")
+            .attr("class", "placement_info")
         infos.exit().remove()
         infos.html((d) -> placement_grid.template(d))
 
@@ -405,11 +413,10 @@ class PlacementGrid
                 .attr("id", (d) -> "id_block_" + d.block_id)
                 .on('click', (d) ->
                     # Toggle selected state of clicked block
-                    d.selected = !d.selected
-                    if d.selected
-                        obj.select_block(d)
-                    else
+                    if obj.selected(d.block_id)
                         obj.deselect_block(d)
+                    else
+                        obj.select_block(d)
                 )
                 .on('mouseout', (d, i) =>
                     @block_mouseout(d, i, d3.select("#id_block_" + i))
@@ -440,20 +447,20 @@ class PlacementGrid
         obj = @
         blocks = @grid.selectAll(".cell").select(".block")
             .style("fill", (d) ->
-                if d.selected
+                if obj.selected(d.block_id)
                     obj.selected_fill_color()
                 else
                     obj.block_color(d)
             )
             .style("fill-opacity", (d) ->
-                if d.selected
+                if obj.selected(d.block_id)
                     d.fill_opacity = 0.8
                 else
                     d.fill_opacity = 0.5
                 return d.fill_opacity
             )
             .style("stroke-width", (d) ->
-                if d.selected
+                if obj.selected(d.block_id)
                     d.stroke_width = 4
                 else
                     d.stroke_width = 1
