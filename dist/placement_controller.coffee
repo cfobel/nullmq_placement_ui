@@ -17,6 +17,8 @@ class PlacementController extends EchoJsonController
         @swap_context_i = -1
         _.templateSettings =
           interpolate: /\{\{(.+?)\}\}/g
+        @swap_template_text = d3.select("#swap_template").html()
+        @swap_template = _.template(@swap_template_text)
         @swap_context_template_text = d3.select("#swap_context_template").html()
         @swap_context_template = _.template(@swap_context_template_text)
         @swap_context_detail_template_text =
@@ -133,6 +135,7 @@ class PlacementController extends EchoJsonController
         if @swap_context_i >= 0
             c = @current_swap_context()
             @highlight_block_swaps(block_ids.concat([i]))
+            @update_swap_list_info(block_ids.concat([i]))
 
         # Update current block info table
         current_info = d3.select("#placement_info_current")
@@ -146,6 +149,8 @@ class PlacementController extends EchoJsonController
 
     block_mouseout: (d, i, from_rect) =>
         @unhighlight_block_swaps(i, from_rect)
+        block_ids = @placement_grid.selected_block_ids()
+        @update_swap_list_info(block_ids)
 
     initialize: (callback) ->
         if not @initialized
@@ -173,6 +178,27 @@ class PlacementController extends EchoJsonController
         reverse_index: @swap_contexts.length - i - 1
         _sorted_keys: () ->
             ["index", "accepted_count", "skipped_count", "total_count"]
+
+    update_swap_list_info: (block_ids) =>
+        swap_links = @select_link_elements_by_block_ids(block_ids, false)
+        if swap_links.empty()
+            data = []
+        else
+            data = swap_links.data()
+        swap_rows = d3.select("#id_swap_tbody")
+            .selectAll(".swap_row")
+                .data(data, (d) -> d.swap_i)
+        swap_rows.exit().remove()
+        swap_rows.enter()
+                .append("tr")
+                    .attr("class", "swap_row")
+                    .attr("id", (d, i) ->
+                        id_text = "id_swap_row_" + d.swap_i
+                        return id_text
+                    )
+                    .html((d, i) =>
+                        @swap_template(d)
+                    )
 
     update_swap_context_info: () =>
         # Update table where each row shows a summary of a swap context, along

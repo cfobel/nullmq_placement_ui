@@ -36,17 +36,41 @@
     <div class="span4">
       <div class="row">
         <div style="vertical-align: middle">
+          <h3 class="pull-left">Current swap: </h3>
+          <h1 id="id_swap_current_index" class="pull-right"></h1>
+        </div>
+        <div id="id_swap_current_info" class="span4">
+          <table class="table table-condensed table-bordered table-striped">
+            <tbody id="id_swap_tbody" style="font-size: 80%;">
+              <tr>
+                <th id="id_swap_i_header" title="Swap index">i</th>
+                <th id="id_swap_master_header" title="Master">m</th>
+                <th id="id_swap_from_header" title="Source block index" colspan="2">Source</th>
+                <th id="id_swap_to_header" title="Target block index" colspan="2">Target</th>
+                <th id="id_swap_delta_cost_header" title="Delta cost">d</th>
+                <th id="id_swap_accepted_header" title="Accepted">a</th>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="span4">
+      <div class="row">
+        <div style="vertical-align: middle">
           <h3 class="pull-left">Swap context: </h3>
           <h1 id="id_swap_context_current" class="pull-right"></h1>
         </div>
-        <div class="span4 visible" style="height: 500; overflow: auto;">
+        <div class="span4 visible" style="height: 150; overflow: auto;">
           <table class="table table-condensed table-bordered table-striped">
             <tbody id="swap_context_list" style="font-size: 80%;">
+              <tr>
                 <th id="id_swap_context_index_header" title="Swap context index">i</th>
                 <th id="id_swap_context_accepted_header" title="Accepted swaps count">+</th>
                 <th id="id_swap_context_skipped_header" title="Skipped swaps count">-</th>
                 <th id="id_swap_context_total_header" title="Evaluated swaps/total swaps">Total</th>
                 <th id="id_swap_context_actions_header" title="Perform actions on swap context">Actions</th>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -77,6 +101,28 @@
             </tbody>
         </table>
     </div>
+    <table class="invisible" >
+    <!-- The contents of the tag are used as a template to format an info table
+      for a block -->
+        <tbody><tr id="swap_template">
+          <th id="id_swap_row_swap_i_{{ swap_i }}" class="swap_row_swap_i" style="text-align: center">{{ swap_i }}</th>
+          <td id="id_swap_row_master_{{ swap_i }}" class="swap_row_master" style="text-align: center">{{ swap_config.master }}</td>
+          <td style="text-align: center">
+              {{ swap_config.ids.from_ }}
+          </td>
+          <td style="text-align: center">
+              {{ swap_config.coords.from_ }}
+          </td>
+          <td style="text-align: center">
+              {{ swap_config.ids.to }}
+          </td>
+          <td style="text-align: center">
+              {{ swap_config.coords.to }}
+          </td>
+          <td id="id_swap_row_delta_cost_{{ swap_i }}" class="swap_row_delta_cost" style="text-align: center">{{ swap_result.delta_cost }}</td>
+          <td id="id_swap_row_accepted_{{ swap_i }}" class="swap_row_accepted" style="text-align: center">{{ swap_result.swap_accepted }}</td>
+        </tr></tbody>
+    </table>
     <table class="invisible" >
     <!-- The contents of the tag are used as a template to format an info table
       for a block -->
