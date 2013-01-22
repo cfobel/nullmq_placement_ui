@@ -180,6 +180,7 @@ class PlacementController extends EchoJsonController
             ["index", "accepted_count", "skipped_count", "total_count"]
 
     update_swap_list_info: (block_ids) =>
+        c = @current_swap_context()
         swap_links = @select_link_elements_by_block_ids(block_ids, false)
         if swap_links.empty()
             data = []
@@ -198,6 +199,28 @@ class PlacementController extends EchoJsonController
                     )
                     .html((d, i) =>
                         @swap_template(d)
+                    )
+                    .each((d, i) =>
+                        try
+                            if d.swap_config.participate
+                                cost_details = d.swap_result.delta_cost_details
+                                content = c.delta_costs_summary(
+                                    c.compute_delta_costs(cost_details))
+                            else
+                                content = "Swap was not evaluated"
+                            options =
+                                html: true
+                                title: "Swap " + d.swap_i
+                                content: content
+                            $("#id_swap_show_delta_cost_" + d.swap_i)
+                                .popover(options)
+                                .on("click", () ->
+                                    c._last_swap_detail_clicked = this
+                                    $(".popover", this.parent).draggable()
+                                )
+                        catch e
+                            @_last_error = e
+                            console.log("error generating summary for swap", d, content)
                     )
 
     update_swap_context_info: () =>
