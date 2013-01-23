@@ -16,6 +16,7 @@
 <script type="text/javascript" src="/dist/lib/sylvester.js"></script>
 <script type="text/javascript" src="/dist/lib/glUtils.js"></script>
 <script type="text/javascript" src="/dist/bootstrap/js/bootstrap.min.js"></script>
+<script type="text/javascript" src="/dist/bootstrap/js/bootstrapx-clickover.js"></script>
 </head>
 <body>
 <div class="container">
@@ -26,7 +27,7 @@
   </div>
   <div class="row">
     <p class="lead">Click the button below to load block positions from placement controller.</p>
-    <a href="#" class="btn" rel="popover" data-placement="bottom" data-content="Vivamus sagittis lacus vel augue laoreet rutrum faucibus." title="Popover on bottom">Popover on bottom</a>
+    <a href="#" class="btn" rel="clickover">Popover on bottom</a>
     <fieldset>
         <button name="load_placement" id="id_load_placement">Load placement</button>
     </fieldset>
@@ -41,15 +42,33 @@
         <div style="vertical-align: middle">
           <h3 class="pull-left">Current swap: </h3>
           <h1 id="id_swap_current_index" class="pull-right"></h1>
+          <button type="button" class="close" id="id_class_close">close &times;</button>
+        </div>
+        <style type="text/css" media="all">
+th.center {
+    text-align: center;
+}
+        </style>
+        <div class="invisible">
+          <table class="table table-condensed table-bordered table-striped">
+            <tbody class="from_delta_template" style="font-size: 60%;">
+              <tr>
+                <th id="id_net_id" class="center" title="Net index" rowspan="3">n</th>
+                <th id="id_sum_header" class="center" title="Sum" colspan="6">Sum</th>
+                <th id="id_squared_sum_header" class="center" title="Squared Sum" colspan="6">Squared Sum</th>
+                <th id="id_delta_total" class="center" title="Total delta" rowspan="3">d</th>
+              </tr>
+            </tbody>
+          </table>
         </div>
         <div id="id_swap_current_info" class="span4">
           <table class="table table-condensed table-bordered table-striped">
             <tbody id="id_swap_tbody" style="font-size: 80%;">
               <tr>
-                <th id="id_swap_i_header" title="Swap index">i</th>
-                <th id="id_swap_master_header" title="Master">m</th>
-                <th id="id_swap_from_header" title="Source block index" colspan="2">Source</th>
-                <th id="id_swap_to_header" title="Target block index" colspan="2">Target</th>
+                <th id="id_swap_i_header">i</th>
+                <th id="id_swap_master_header">m</th>
+                <th id="id_swap_from_header" colspan="2">Source</th>
+                <th id="id_swap_to_header" colspan="2">Target</th>
                 <th id="id_swap_delta_cost_header" title="Delta cost">d</th>
                 <th id="id_swap_accepted_header" title="Accepted">a</th>
                 <th id="id_swap_actions_header" title="Details">Details</th>
@@ -162,6 +181,39 @@
 
 
     </div>
+    <div id="id_swap_delta_template" class="invisible" >
+      <table class="table table-condensed table-bordered table-striped">
+            <tbody class="from_delta" style="font-size: 60%;">
+          <tr>
+            <th id="id_net_id" class="center" title="Net index" rowspan="3">n</th>
+            <th id="id_block_count" class="center" title="Number of blocks connected to net" rowspan="3">kl</th>
+            <th id="id_sum_header" class="center" title="Sum" colspan="6">Sum</th>
+            <th id="id_squared_sum_header" class="center" title="Squared Sum" colspan="6">Squared Sum</th>
+            <th id="id_delta_total" class="center" title="Total delta" rowspan="3">d</th>
+          </tr>
+          <tr>
+            <th id="id_sum_x_header" class="center" class="center" class="center" title="Sum x" colspan="3">x</th>
+            <th id="id_sum_y_header" class="center" title="Sum y" colspan="3">y</th>
+            <th id="id_squared_sum_x_header" class="center" title="Squared Sum x" colspan="3">x</th>
+            <th id="id_squared_sum_y_header" class="center" title="Squared Sum y" colspan="3">y</th>
+          </tr>
+          <tr>
+            <th id="id_old_sum_x_header" class="center" title="Old sum x">old</th>
+            <th id="id_new_sum_x_header" class="center" title="New sum x">new</th>
+            <th id="id_delta_sum_x_header" class="center" title="Delta sum x">d</th>
+            <th id="id_old_sum_y_header" class="center" title="Old sum y">old</th>
+            <th id="id_new_sum_y_header" class="center" title="New sum y">new</th>
+            <th id="id_delta_sum_y_header" class="center" title="Delta sum y">d</th>
+            <th id="id_old_squared_sum_x_header" class="center" title="Old squared sum x">old</th>
+            <th id="id_new_squared_sum_x_header" class="center" title="New squared sum x">new</th>
+            <th id="id_delta_squared_sum_x_header" class="center" title="Delta squared sum x">d</th>
+            <th id="id_old_squared_sum_y_header" class="center" title="Old squared sum y">old</th>
+            <th id="id_new_squared_sum_y_header" class="center" title="New squared sum y">new</th>
+            <th id="id_delta_squared_sum_y_header" class="center" title="Delta squared sum y">d</th>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </section>
 
@@ -206,6 +258,9 @@
       .click((e) ->
         e.preventDefault()
       )
+    $("#id_class_close").on('click', () ->
+        $(".popover").popover('hide')
+    )
 </script>
 </body>
 </html>

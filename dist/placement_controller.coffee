@@ -19,6 +19,8 @@ class PlacementController extends EchoJsonController
           interpolate: /\{\{(.+?)\}\}/g
         @swap_template_text = d3.select("#swap_template").html()
         @swap_template = _.template(@swap_template_text)
+        @swap_delta_template_text = d3.select("#id_swap_delta_template").html()
+        @swap_delta_template = _.template(@swap_delta_template_text)
         @swap_context_template_text = d3.select("#swap_context_template").html()
         @swap_context_template = _.template(@swap_context_template_text)
         @swap_context_detail_template_text =
@@ -180,6 +182,7 @@ class PlacementController extends EchoJsonController
             ["index", "accepted_count", "skipped_count", "total_count"]
 
     update_swap_list_info: (block_ids) =>
+        obj = @
         c = @current_swap_context()
         swap_links = @select_link_elements_by_block_ids(block_ids, false)
         if swap_links.empty()
@@ -204,20 +207,97 @@ class PlacementController extends EchoJsonController
                         try
                             if d.swap_config.participate
                                 cost_details = d.swap_result.delta_cost_details
-                                content = c.delta_costs_summary(
-                                    c.compute_delta_costs(cost_details))
+                                content = obj.swap_delta_template(d)
+                                net_count = cost_details.from_.net_block_counts.length
+                                data = Matrix.Zero(net_count, 15)
+                                @_last_data = data
+                                for i in [0..cost_details.from_.net_block_counts.length - 1]
+                                    [net_id, block_count] = cost_details.from_.net_block_counts[i]
+                                    console.log(i, "net_id", net_id, "block_count", block_count)
+                                    old = cost_details.from_.old_sums
+                                    new_= cost_details.from_.new_sums
+                                    sum =
+                                        x:
+                                            old: old[i][0]
+                                            new_: new_[i][0]
+                                            d: new_[i][0] - old[i][0]
+                                        y:
+                                            old: old[i][1]
+                                            new_: new_[i][1]
+                                            d: new_[i][1] - old[i][1]
+                                    old = cost_details.from_.old_squared_sums
+                                    new_= cost_details.from_.new_squared_sums
+                                    squared_sum =
+                                        x:
+                                            old: old[i][0]
+                                            new_: new_[i][0]
+                                            d: new_[i][0] - old[i][0]
+                                        y:
+                                            old: old[i][1]
+                                            new_: new_[i][1]
+                                            d: new_[i][1] - old[i][1]
+                                    k = 0
+                                    data.elements[i][k++] = net_id
+                                    data.elements[i][k++] = block_count
+                                    data.elements[i][k++] = sum.x.old
+                                    data.elements[i][k++] = sum.x.new_
+                                    data.elements[i][k++] = sum.x.d
+                                    data.elements[i][k++] = sum.y.old
+                                    data.elements[i][k++] = sum.y.new_
+                                    data.elements[i][k++] = sum.y.d
+                                    data.elements[i][k++] = squared_sum.x.old
+                                    data.elements[i][k++] = squared_sum.x.new_
+                                    data.elements[i][k++] = squared_sum.x.d
+                                    data.elements[i][k++] = squared_sum.y.old
+                                    data.elements[i][k++] = squared_sum.y.new_
+                                    data.elements[i][k++] = squared_sum.y.d
+                                total_costs = data.col(5)
+                                    .add(data.col(8))
+                                    .add(data.col(11))
+                                    .add(data.col(14))
+                                for i in [0..data.dimensions().rows - 1]
+                                    data.elements[i][14] = total_costs.elements[i]
+                                _sum = (d) -> _.reduce(d, ((a, b) -> a + b), 0)
+                                totals =
+                                    sum_x_d: _sum(data.col(5).elements)
+                                    sum_y_d: _sum(data.col(8).elements)
+                                    squared_sum_x_d: _sum(data.col(11).elements)
+                                    squared_sum_y_d: _sum(data.col(14).elements)
+                                    total_d: _sum(data.col(15).elements)
+                                for i in [0..data.dimensions().rows - 1]
+                                    console.log(i, data.elements[i])
+                                console.log(JSON.stringify(totals))
                             else
                                 content = "Swap was not evaluated"
                             options =
                                 html: true
-                                title: "Swap " + d.swap_i
+                                title: 'Swap ' + d.swap_i + ' <button type="button" class="close" data-dismiss="clickover">&times;</button>'
                                 content: content
-                            $("#id_swap_show_delta_cost_" + d.swap_i)
-                                .popover(options)
-                                .on("click", () ->
-                                    c._last_swap_detail_clicked = this
-                                    $(".popover", this.parent).draggable()
-                                )
+                                placement: 'bottom'
+                                global_close: false
+                                esc_close: false
+                                allow_multiple: true
+                                onShown: () ->
+                                    console.log("onShown", JSON.stringify(d))
+                                    tbody = d3.selectAll("#id_swap_row_actions_" + d.swap_i + " > .popover .from_delta")
+                                    for i in [0..data.dimensions().rows - 1]
+                                        row = tbody.append("tr").attr("class", "net_delta_row")
+                                        row_data = data.elements[i]
+                                        for r in row_data
+                                            row.append("td").html(r)
+                                    row = tbody.append("tr").attr("class", "net_delta_row")
+                                    row.append("th").attr("colspan", 4).html("Total")
+                                    row.append("th").html(totals.sum_x_d)
+                                    row.append("th").attr("colspan", 2).html("&nbsp;")
+                                    row.append("th").html(totals.sum_y_d)
+                                    row.append("th").attr("colspan", 2).html("&nbsp;")
+                                    row.append("th").html(totals.squared_sum_x_d)
+                                    row.append("th").attr("colspan", 2).html("&nbsp;")
+                                    row.append("th").html(totals.squared_sum_y_d)
+                                    row.append("th").html(totals.total_d)
+                                    $(this.$tip).draggable()
+                                    $(this.$tip).width($("#id_swap_delta_template").width() + 80)
+                            $("#id_swap_show_delta_cost_" + d.swap_i).clickover(options)
                         catch e
                             @_last_error = e
                             console.log("error generating summary for swap", d, content)

@@ -106,23 +106,32 @@ class SwapContext
             delta = new_.subtract(old)
             new_.flatten().join(" + ") + " - " + old.flatten().join(" - ") +
                 " (" + delta.flatten().join(" + ") + ")"
-        "{" + summary(d.from_costs) + "} + {" + summary(d.to_costs) + "}"
+        from_summary = if d.from_costs.old? then summary(d.from_costs) else ""
+        to_summary = if d.to_costs.old? then summary(d.to_costs) else ""
+        "{" + from_summary + "} + {" + to_summary + "}"
     
     compute_delta_costs: (d) ->
         costs = {}
         for name,details of {'from_': d.from_, 'to': d.to}
-            try
-                costs[name] = {}
-                costs[name].old = @_compute_costs(details.old_sums, details.old_squared_sums,
-                                 details.net_block_counts)
-                costs[name].new_ = @_compute_costs(details.new_sums, details.new_squared_sums,
-                                 details.net_block_counts)
-            catch e
-                console.log("[compute_delta_costs] ERROR:", name, details)
+            costs[name] = {}
+            for k in ["old", "new"]
+                try
+                    sums = details[k + "_sums"]
+                    squared_sums = details[k + "_squared_sums"]
+                    if k == "new"
+                        k = "new_"
+                    if sums.length
+                        costs[name][k] = @_compute_costs(sums, squared_sums,
+                                     details.net_block_counts)
+                    else
+                        costs[name][k] = null
+                catch e
+                    console.log("[compute_delta_costs] ERROR:", name, k, details, e)
         return from_costs: costs['from_'], to_costs: costs['to']
 
     _compute_costs: (sums, squared_sums, net_block_counts) ->
-        costs = []
+        x_costs = []
+        y_costs = []
         for i in [0..net_block_counts.length - 1]
             result = Math.round(
                 sums[i][0] +
