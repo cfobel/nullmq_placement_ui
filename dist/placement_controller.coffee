@@ -207,66 +207,26 @@ class PlacementController extends EchoJsonController
                         try
                             if d.swap_config.participate
                                 cost_details = d.swap_result.delta_cost_details
-                                content = obj.swap_delta_template(d)
-                                net_count = cost_details.from_.net_block_counts.length
-                                data = Matrix.Zero(net_count, 15)
-                                @_last_data = data
-                                for i in [0..cost_details.from_.net_block_counts.length - 1]
-                                    [net_id, block_count] = cost_details.from_.net_block_counts[i]
-                                    console.log(i, "net_id", net_id, "block_count", block_count)
-                                    old = cost_details.from_.old_sums
-                                    new_= cost_details.from_.new_sums
-                                    sum =
-                                        x:
-                                            old: old[i][0]
-                                            new_: new_[i][0]
-                                            d: new_[i][0] - old[i][0]
-                                        y:
-                                            old: old[i][1]
-                                            new_: new_[i][1]
-                                            d: new_[i][1] - old[i][1]
-                                    old = cost_details.from_.old_squared_sums
-                                    new_= cost_details.from_.new_squared_sums
-                                    squared_sum =
-                                        x:
-                                            old: old[i][0]
-                                            new_: new_[i][0]
-                                            d: new_[i][0] - old[i][0]
-                                        y:
-                                            old: old[i][1]
-                                            new_: new_[i][1]
-                                            d: new_[i][1] - old[i][1]
-                                    k = 0
-                                    data.elements[i][k++] = net_id
-                                    data.elements[i][k++] = block_count
-                                    data.elements[i][k++] = sum.x.old
-                                    data.elements[i][k++] = sum.x.new_
-                                    data.elements[i][k++] = sum.x.d
-                                    data.elements[i][k++] = sum.y.old
-                                    data.elements[i][k++] = sum.y.new_
-                                    data.elements[i][k++] = sum.y.d
-                                    data.elements[i][k++] = squared_sum.x.old
-                                    data.elements[i][k++] = squared_sum.x.new_
-                                    data.elements[i][k++] = squared_sum.x.d
-                                    data.elements[i][k++] = squared_sum.y.old
-                                    data.elements[i][k++] = squared_sum.y.new_
-                                    data.elements[i][k++] = squared_sum.y.d
-                                total_costs = data.col(5)
-                                    .add(data.col(8))
-                                    .add(data.col(11))
-                                    .add(data.col(14))
-                                for i in [0..data.dimensions().rows - 1]
-                                    data.elements[i][14] = total_costs.elements[i]
-                                _sum = (d) -> _.reduce(d, ((a, b) -> a + b), 0)
-                                totals =
-                                    sum_x_d: _sum(data.col(5).elements)
-                                    sum_y_d: _sum(data.col(8).elements)
-                                    squared_sum_x_d: _sum(data.col(11).elements)
-                                    squared_sum_y_d: _sum(data.col(14).elements)
-                                    total_d: _sum(data.col(15).elements)
-                                for i in [0..data.dimensions().rows - 1]
-                                    console.log(i, data.elements[i])
-                                console.log(JSON.stringify(totals))
+                                result =
+                                    from_: @delta_cost_matrix(cost_details.from_)
+                                    to: @delta_cost_matrix(cost_details.to)
+                                table_data =
+                                    from_:
+                                        matrix: result.from_.delta_cost_matrix
+                                        totals: result.from_.totals
+                                    to:
+                                        matrix: result.to.delta_cost_matrix
+                                        totals: result.to.totals
+                                from_d = $().extend({prefix: "from"}, d)
+                                to_d = $().extend({prefix: "to"}, d)
+                                content = @swap_delta_template(from_d) + @swap_delta_template(to_d)
+                                @_last_data = table_data
+                                console.log("from data")
+                                for i in [0..table_data.from_.matrix.dimensions().rows - 1]
+                                    console.log(i, table_data.from_.matrix.elements[i])
+                                console.log("to data")
+                                for i in [0..table_data.to.matrix.dimensions().rows - 1]
+                                    console.log(i, table_data.to.matrix.elements[i])
                             else
                                 content = "Swap was not evaluated"
                             options =
@@ -279,29 +239,103 @@ class PlacementController extends EchoJsonController
                                 allow_multiple: true
                                 onShown: () ->
                                     console.log("onShown", JSON.stringify(d))
-                                    tbody = d3.selectAll("#id_swap_row_actions_" + d.swap_i + " > .popover .from_delta")
-                                    for i in [0..data.dimensions().rows - 1]
+                                    fill_table = (data, totals, table) ->
+                                        tbody = d3.select(table).select("tbody")
+                                        for i in [0..data.dimensions().rows - 1]
+                                            # Append row for each net connected to block
+                                            row = tbody.append("tr").attr("class", "net_delta_row")
+                                            row_data = data.elements[i]
+                                            for r in row_data
+                                                row.append("td").html(r)
+                                        # Append footer row
                                         row = tbody.append("tr").attr("class", "net_delta_row")
-                                        row_data = data.elements[i]
-                                        for r in row_data
-                                            row.append("td").html(r)
-                                    row = tbody.append("tr").attr("class", "net_delta_row")
-                                    row.append("th").attr("colspan", 4).html("Total")
-                                    row.append("th").html(totals.sum_x_d)
-                                    row.append("th").attr("colspan", 2).html("&nbsp;")
-                                    row.append("th").html(totals.sum_y_d)
-                                    row.append("th").attr("colspan", 2).html("&nbsp;")
-                                    row.append("th").html(totals.squared_sum_x_d)
-                                    row.append("th").attr("colspan", 2).html("&nbsp;")
-                                    row.append("th").html(totals.squared_sum_y_d)
-                                    row.append("th").html(totals.total_d)
+                                        row.append("th").attr("colspan", 4).html("Total")
+                                        row.append("th").html(totals.sum_x_d)
+                                        row.append("th").attr("colspan", 2).html("&nbsp;")
+                                        row.append("th").html(totals.sum_y_d)
+                                        row.append("th").attr("colspan", 2).html("&nbsp;")
+                                        row.append("th").html(totals.squared_sum_x_d)
+                                        row.append("th").attr("colspan", 2).html("&nbsp;")
+                                        row.append("th").html(totals.squared_sum_y_d)
+                                        row.append("th").html(totals.total_d)
+
+                                    data = table_data.from_.matrix
+                                    totals = table_data.from_.totals
+                                    #from_tbody = d3.select("#id_swap_row_actions_" + d.swap_i + " > .popover .from_delta")
+                                    [from_table, to_table] = $("#id_swap_row_actions_" + d.swap_i + " > .popover table")
+                                    fill_table(data, totals, from_table)
+
+                                    data = table_data.to.matrix
+                                    totals = table_data.to.totals
+                                    fill_table(data, totals, to_table)
+
+                                    obj._last_tbody_tags = [from_table, to_table]
+
                                     $(this.$tip).draggable()
-                                    $(this.$tip).width($("#id_swap_delta_template").width() + 80)
+                                    $(this.$tip).width($("#id_swap_delta_template > table").width() + 45)
                             $("#id_swap_show_delta_cost_" + d.swap_i).clickover(options)
                         catch e
                             @_last_error = e
                             console.log("error generating summary for swap", d, content)
                     )
+
+    delta_cost_matrix: (cost_details) =>
+        net_count = cost_details.net_block_counts.length
+        data = Matrix.Zero(net_count, 15)
+        for i in [0..cost_details.net_block_counts.length - 1]
+            [net_id, block_count] = cost_details.net_block_counts[i]
+            console.log(i, "net_id", net_id, "block_count", block_count)
+            old = cost_details.old_sums
+            new_= cost_details.new_sums
+            sum =
+                x:
+                    old: old[i][0]
+                    new_: new_[i][0]
+                    d: new_[i][0] - old[i][0]
+                y:
+                    old: old[i][1]
+                    new_: new_[i][1]
+                    d: new_[i][1] - old[i][1]
+            old = cost_details.old_squared_sums
+            new_= cost_details.new_squared_sums
+            squared_sum =
+                x:
+                    old: old[i][0]
+                    new_: new_[i][0]
+                    d: new_[i][0] - old[i][0]
+                y:
+                    old: old[i][1]
+                    new_: new_[i][1]
+                    d: new_[i][1] - old[i][1]
+            k = 0
+            data.elements[i][k++] = net_id
+            data.elements[i][k++] = block_count
+            data.elements[i][k++] = sum.x.old
+            data.elements[i][k++] = sum.x.new_
+            data.elements[i][k++] = sum.x.d
+            data.elements[i][k++] = sum.y.old
+            data.elements[i][k++] = sum.y.new_
+            data.elements[i][k++] = sum.y.d
+            data.elements[i][k++] = squared_sum.x.old
+            data.elements[i][k++] = squared_sum.x.new_
+            data.elements[i][k++] = squared_sum.x.d
+            data.elements[i][k++] = squared_sum.y.old
+            data.elements[i][k++] = squared_sum.y.new_
+            data.elements[i][k++] = squared_sum.y.d
+        total_costs = data.col(5)
+            .add(data.col(8))
+            .add(data.col(11))
+            .add(data.col(14))
+        for i in [0..data.dimensions().rows - 1]
+            data.elements[i][14] = total_costs.elements[i]
+        _sum = (d) -> _.reduce(d, ((a, b) -> a + b), 0)
+        totals =
+            sum_x_d: _sum(data.col(5).elements)
+            sum_y_d: _sum(data.col(8).elements)
+            squared_sum_x_d: _sum(data.col(11).elements)
+            squared_sum_y_d: _sum(data.col(14).elements)
+            total_d: _sum(data.col(15).elements)
+        return delta_cost_matrix: data, totals: totals
 
     update_swap_context_info: () =>
         # Update table where each row shows a summary of a swap context, along
