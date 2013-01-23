@@ -226,17 +226,22 @@ class PlacementController extends EchoJsonController
                                         totals: result.to.totals
                                 from_d = $().extend({prefix: "from"}, d)
                                 to_d = $().extend({prefix: "to"}, d)
-                                content = @swap_delta_template(from_d) + @swap_delta_template(to_d)
-                                @_last_data = table_data
-                                console.log("from data")
-                                for i in [0..table_data.from_.matrix.dimensions().rows - 1]
-                                    console.log(i, table_data.from_.matrix.elements[i])
-                                console.log("to data")
-                                for i in [0..table_data.to.matrix.dimensions().rows - 1]
-                                    console.log(i, table_data.to.matrix.elements[i])
-                                popover_options.content = content
+                                content =
+                                    # Only add tables to content if we have
+                                    # valid matrix for the corresponding set of
+                                    # delta costs.  If there is no delta cost
+                                    # matrix, `table_data.*.matrix` will be set
+                                    # to `null`, so we check for that here.
+                                    from_: if table_data.from_.matrix? then @swap_delta_template(from_d) else ''
+                                    to: if table_data.to.matrix? then @swap_delta_template(to_d) else ''
+                                @_last_data = table_data: table_data, content: content
+                                popover_options.content = content.from_ + content.to
                                 popover_options.onShown = () ->
-                                    console.log("onShown", JSON.stringify(d))
+                                    from_tbody = $("#id_swap_row_actions_" + d.swap_i + " > .popover table .from_delta")
+                                    to_tbody = $("#id_swap_row_actions_" + d.swap_i + " > .popover table .to_delta")
+                                    obj._last_tbody_tags = [from_tbody, to_tbody]
+                                    obj._last_table_data = table_data
+
                                     fill_table = (data, totals, table) ->
                                         tbody = d3.select(table).select("tbody")
                                         for i in [0..data.dimensions().rows - 1]
@@ -257,18 +262,28 @@ class PlacementController extends EchoJsonController
                                         row.append("th").html(totals.squared_sum_y_d)
                                         row.append("th").html(totals.total_d)
 
-                                    data = table_data.from_.matrix
-                                    totals = table_data.from_.totals
-                                    #from_tbody = d3.select("#id_swap_row_actions_" + d.swap_i + " > .popover .from_delta")
-                                    [from_table, to_table] = $("#id_swap_row_actions_" + d.swap_i + " > .popover table")
-                                    fill_table(data, totals, from_table)
+                                    width = -1
 
-                                    data = table_data.to.matrix
-                                    totals = table_data.to.totals
-                                    fill_table(data, totals, to_table)
-                                    obj._last_tbody_tags = [from_table, to_table]
-                                    width = d3.max([$(from_table).width(), $(to_table).width()])
+                                    if table_data.from_.matrix?
+                                        # Only fill "from_" table if we have a
+                                        # valid delta costs matrix
+                                        data = table_data.from_.matrix
+                                        totals = table_data.from_.totals
+                                        from_table = from_tbody.parent()[0]
+                                        fill_table(data, totals, from_table)
+                                        width = $(from_table).width()
+
+                                    if table_data.to.matrix?
+                                        # Only fill "to" table if we have a
+                                        # valid delta costs matrix
+                                        data = table_data.to.matrix
+                                        totals = table_data.to.totals
+                                        to_table = to_tbody.parent()[0]
+                                        fill_table(data, totals, to_table)
+                                        width = Math.max(width, $(to_table).width())
                                     $(this.$tip).width(width + 35)
+                                    # Allow the popover to be repositioned by
+                                    # clicking and dragging.
                                     $(this.$tip).draggable()
                             else
                                 popover_options.content = "Swap was not evaluated"
@@ -281,10 +296,8 @@ class PlacementController extends EchoJsonController
 
     delta_cost_matrix: (cost_details) =>
         net_count = cost_details.net_block_counts.length
-        console.log("delta_cost_matrix", "net_count", net_count, "cost_details", JSON.stringify(cost_details))
         if net_count <= 0
             result = delta_cost_matrix: null, totals: null
-            console.log("delta_cost_matrix", JSON.stringify(result))
             return result
         data = Matrix.Zero(net_count, 15)
         for i in [0..cost_details.net_block_counts.length - 1]
@@ -339,7 +352,6 @@ class PlacementController extends EchoJsonController
             squared_sum_x_d: _sum(data.col(11).elements)
             squared_sum_y_d: _sum(data.col(14).elements)
             total_d: _sum(data.col(15).elements)
-        console.log("delta_cost_matrix", data, totals)
         return delta_cost_matrix: data, totals: totals
 
     update_swap_context_info: () =>
