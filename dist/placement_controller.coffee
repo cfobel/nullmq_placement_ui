@@ -19,6 +19,8 @@ class PlacementController extends EchoJsonController
           interpolate: /\{\{(.+?)\}\}/g
         @swap_template_text = d3.select("#swap_template").html()
         @swap_template = _.template(@swap_template_text)
+        @swap_delta_template_text = d3.select("#id_swap_delta_template").html()
+        @swap_delta_template = _.template(@swap_delta_template_text)
         @swap_context_template_text = d3.select("#swap_context_template").html()
         @swap_context_template = _.template(@swap_context_template_text)
         @swap_context_detail_template_text =
@@ -180,6 +182,8 @@ class PlacementController extends EchoJsonController
             ["index", "accepted_count", "skipped_count", "total_count"]
 
     update_swap_list_info: (block_ids) =>
+        obj = @
+        c = @current_swap_context()
         swap_links = @select_link_elements_by_block_ids(block_ids, false)
         if swap_links.empty()
             data = []
@@ -199,6 +203,156 @@ class PlacementController extends EchoJsonController
                     .html((d, i) =>
                         @swap_template(d)
                     )
+                    .each((d, i) =>
+                        try
+                            popover_options =
+                                html: true
+                                title: 'Swap ' + d.swap_i + ' <button type="button" class="close" data-dismiss="clickover">&times;</button>'
+                                global_close: false
+                                esc_close: false
+                                allow_multiple: true
+                                placement: 'bottom'
+                            if d.swap_config.participate
+                                cost_details = d.swap_result.delta_cost_details
+                                result =
+                                    from_: @delta_cost_matrix(cost_details.from_)
+                                    to: @delta_cost_matrix(cost_details.to)
+                                table_data =
+                                    from_:
+                                        matrix: result.from_.delta_cost_matrix
+                                        totals: result.from_.totals
+                                    to:
+                                        matrix: result.to.delta_cost_matrix
+                                        totals: result.to.totals
+                                from_d = $().extend({prefix: "from"}, d)
+                                to_d = $().extend({prefix: "to"}, d)
+                                content =
+                                    # Only add tables to content if we have
+                                    # valid matrix for the corresponding set of
+                                    # delta costs.  If there is no delta cost
+                                    # matrix, `table_data.*.matrix` will be set
+                                    # to `null`, so we check for that here.
+                                    from_: if table_data.from_.matrix? then @swap_delta_template(from_d) else ''
+                                    to: if table_data.to.matrix? then @swap_delta_template(to_d) else ''
+                                @_last_data = table_data: table_data, content: content
+                                popover_options.content = content.from_ + content.to
+                                popover_options.onShown = () ->
+                                    from_tbody = $("#id_swap_row_actions_" + d.swap_i + " > .popover table .from_delta")
+                                    to_tbody = $("#id_swap_row_actions_" + d.swap_i + " > .popover table .to_delta")
+                                    obj._last_tbody_tags = [from_tbody, to_tbody]
+                                    obj._last_table_data = table_data
+
+                                    fill_table = (data, totals, table) ->
+                                        tbody = d3.select(table).select("tbody")
+                                        for i in [0..data.dimensions().rows - 1]
+                                            # Append row for each net connected to block
+                                            row = tbody.append("tr").attr("class", "net_delta_row")
+                                            row_data = data.elements[i]
+                                            for r in row_data
+                                                row.append("td").html(r)
+                                        # Append footer row
+                                        row = tbody.append("tr").attr("class", "net_delta_row")
+                                        row.append("th").attr("colspan", 4).html("Total")
+                                        row.append("th").html(totals.sum_x_d)
+                                        row.append("th").attr("colspan", 2).html("&nbsp;")
+                                        row.append("th").html(totals.sum_y_d)
+                                        row.append("th").attr("colspan", 2).html("&nbsp;")
+                                        row.append("th").html(totals.squared_sum_x_d)
+                                        row.append("th").attr("colspan", 2).html("&nbsp;")
+                                        row.append("th").html(totals.squared_sum_y_d)
+                                        row.append("th").html(totals.total_d)
+
+                                    width = -1
+
+                                    if table_data.from_.matrix?
+                                        # Only fill "from_" table if we have a
+                                        # valid delta costs matrix
+                                        data = table_data.from_.matrix
+                                        totals = table_data.from_.totals
+                                        from_table = from_tbody.parent()[0]
+                                        fill_table(data, totals, from_table)
+                                        width = $(from_table).width()
+
+                                    if table_data.to.matrix?
+                                        # Only fill "to" table if we have a
+                                        # valid delta costs matrix
+                                        data = table_data.to.matrix
+                                        totals = table_data.to.totals
+                                        to_table = to_tbody.parent()[0]
+                                        fill_table(data, totals, to_table)
+                                        width = Math.max(width, $(to_table).width())
+                                    $(this.$tip).width(width + 35)
+                                    # Allow the popover to be repositioned by
+                                    # clicking and dragging.
+                                    $(this.$tip).draggable()
+                            else
+                                popover_options.content = "Swap was not evaluated"
+                                popover_options.onShown = () -> $(this.$tip).draggable()
+                            $("#id_swap_show_delta_cost_" + d.swap_i).clickover(popover_options)
+                        catch e
+                            @_last_error = e
+                            console.log("error generating summary for swap", d, popover_options)
+                    )
+
+    delta_cost_matrix: (cost_details) =>
+        net_count = cost_details.net_block_counts.length
+        if net_count <= 0
+            result = delta_cost_matrix: null, totals: null
+            return result
+        data = Matrix.Zero(net_count, 15)
+        for i in [0..cost_details.net_block_counts.length - 1]
+            [net_id, block_count] = cost_details.net_block_counts[i]
+            old = cost_details.old_sums
+            new_= cost_details.new_sums
+            sum =
+                x:
+                    old: old[i][0]
+                    new_: new_[i][0]
+                    d: new_[i][0] - old[i][0]
+                y:
+                    old: old[i][1]
+                    new_: new_[i][1]
+                    d: new_[i][1] - old[i][1]
+            old = cost_details.old_squared_sums
+            new_= cost_details.new_squared_sums
+            squared_sum =
+                x:
+                    old: old[i][0]
+                    new_: new_[i][0]
+                    d: new_[i][0] - old[i][0]
+                y:
+                    old: old[i][1]
+                    new_: new_[i][1]
+                    d: new_[i][1] - old[i][1]
+            k = 0
+            data.elements[i][k++] = net_id
+            data.elements[i][k++] = block_count
+            data.elements[i][k++] = sum.x.old
+            data.elements[i][k++] = sum.x.new_
+            data.elements[i][k++] = sum.x.d
+            data.elements[i][k++] = sum.y.old
+            data.elements[i][k++] = sum.y.new_
+            data.elements[i][k++] = sum.y.d
+            data.elements[i][k++] = squared_sum.x.old
+            data.elements[i][k++] = squared_sum.x.new_
+            data.elements[i][k++] = squared_sum.x.d
+            data.elements[i][k++] = squared_sum.y.old
+            data.elements[i][k++] = squared_sum.y.new_
+            data.elements[i][k++] = squared_sum.y.d
+        total_costs = data.col(5)
+            .add(data.col(8))
+            .add(data.col(11))
+            .add(data.col(14))
+        for i in [0..data.dimensions().rows - 1]
+            data.elements[i][14] = total_costs.elements[i]
+        _sum = (d) -> _.reduce(d, ((a, b) -> a + b), 0)
+        totals =
+            sum_x_d: _sum(data.col(5).elements)
+            sum_y_d: _sum(data.col(8).elements)
+            squared_sum_x_d: _sum(data.col(11).elements)
+            squared_sum_y_d: _sum(data.col(14).elements)
+            total_d: _sum(data.col(15).elements)
+        return delta_cost_matrix: data, totals: totals
 
     update_swap_context_info: () =>
         # Update table where each row shows a summary of a swap context, along

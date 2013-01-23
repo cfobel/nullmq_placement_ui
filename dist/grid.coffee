@@ -90,6 +90,59 @@ class SwapContext
         @skipped = {}
         @by_from_block_id = {}
         @by_to_block_id = {}
+
+    compute_delta_cost: (d) ->
+        result = @compute_delta_costs(d)
+        sum = (d) -> _.reduce(d, ((a, b) -> a + b), 0)
+        return sum(result.to_costs.new_) -
+                sum(result.to_costs.old) +
+            sum(result.from_costs.new_) -
+                sum(result.from_costs.old)
+
+    delta_costs_summary: (d) ->
+        summary = (costs) ->
+            old = $M(costs.old)
+            new_ = $M(costs.new_)
+            delta = new_.subtract(old)
+            new_.flatten().join(" + ") + " - " + old.flatten().join(" - ") +
+                " (" + delta.flatten().join(" + ") + ")"
+        from_summary = if d.from_costs.old? then summary(d.from_costs) else ""
+        to_summary = if d.to_costs.old? then summary(d.to_costs) else ""
+        "{" + from_summary + "} + {" + to_summary + "}"
+    
+    compute_delta_costs: (d) ->
+        costs = {}
+        for name,details of {'from_': d.from_, 'to': d.to}
+            costs[name] = {}
+            for k in ["old", "new"]
+                try
+                    sums = details[k + "_sums"]
+                    squared_sums = details[k + "_squared_sums"]
+                    if k == "new"
+                        k = "new_"
+                    if sums.length
+                        costs[name][k] = @_compute_costs(sums, squared_sums,
+                                     details.net_block_counts)
+                    else
+                        costs[name][k] = null
+                catch e
+                    console.log("[compute_delta_costs] ERROR:", name, k, details, e)
+        return from_costs: costs['from_'], to_costs: costs['to']
+
+    _compute_costs: (sums, squared_sums, net_block_counts) ->
+        x_costs = []
+        y_costs = []
+        for i in [0..net_block_counts.length - 1]
+            result = Math.round(
+                sums[i][0] +
+                sums[i][1] +
+                squared_sums[i][0] +
+                squared_sums[i][1] +
+                net_block_counts[i][1])
+            costs.push(result)
+            #return _.reduce(costs, ((a, b) -> a + b), 0);
+        return costs
+
     accepted_count: () => Object.keys(@accepted).length
     skipped_count: () => Object.keys(@skipped).length
     participated_count: () => Object.keys(@participated).length
