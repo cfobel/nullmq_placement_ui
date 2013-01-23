@@ -205,6 +205,13 @@ class PlacementController extends EchoJsonController
                     )
                     .each((d, i) =>
                         try
+                            popover_options =
+                                html: true
+                                title: 'Swap ' + d.swap_i + ' <button type="button" class="close" data-dismiss="clickover">&times;</button>'
+                                global_close: false
+                                esc_close: false
+                                allow_multiple: true
+                                placement: 'bottom'
                             if d.swap_config.participate
                                 cost_details = d.swap_result.delta_cost_details
                                 result =
@@ -227,17 +234,8 @@ class PlacementController extends EchoJsonController
                                 console.log("to data")
                                 for i in [0..table_data.to.matrix.dimensions().rows - 1]
                                     console.log(i, table_data.to.matrix.elements[i])
-                            else
-                                content = "Swap was not evaluated"
-                            options =
-                                html: true
-                                title: 'Swap ' + d.swap_i + ' <button type="button" class="close" data-dismiss="clickover">&times;</button>'
-                                content: content
-                                placement: 'bottom'
-                                global_close: false
-                                esc_close: false
-                                allow_multiple: true
-                                onShown: () ->
+                                popover_options.content = content
+                                popover_options.onShown = () ->
                                     console.log("onShown", JSON.stringify(d))
                                     fill_table = (data, totals, table) ->
                                         tbody = d3.select(table).select("tbody")
@@ -268,23 +266,29 @@ class PlacementController extends EchoJsonController
                                     data = table_data.to.matrix
                                     totals = table_data.to.totals
                                     fill_table(data, totals, to_table)
-
                                     obj._last_tbody_tags = [from_table, to_table]
-
+                                    width = d3.max([$(from_table).width(), $(to_table).width()])
+                                    $(this.$tip).width(width + 35)
                                     $(this.$tip).draggable()
-                                    $(this.$tip).width($("#id_swap_delta_template > table").width() + 45)
-                            $("#id_swap_show_delta_cost_" + d.swap_i).clickover(options)
+                            else
+                                popover_options.content = "Swap was not evaluated"
+                                popover_options.onShown = () -> $(this.$tip).draggable()
+                            $("#id_swap_show_delta_cost_" + d.swap_i).clickover(popover_options)
                         catch e
                             @_last_error = e
-                            console.log("error generating summary for swap", d, content)
+                            console.log("error generating summary for swap", d, popover_options)
                     )
 
     delta_cost_matrix: (cost_details) =>
         net_count = cost_details.net_block_counts.length
+        console.log("delta_cost_matrix", "net_count", net_count, "cost_details", JSON.stringify(cost_details))
+        if net_count <= 0
+            result = delta_cost_matrix: null, totals: null
+            console.log("delta_cost_matrix", JSON.stringify(result))
+            return result
         data = Matrix.Zero(net_count, 15)
         for i in [0..cost_details.net_block_counts.length - 1]
             [net_id, block_count] = cost_details.net_block_counts[i]
-            console.log(i, "net_id", net_id, "block_count", block_count)
             old = cost_details.old_sums
             new_= cost_details.new_sums
             sum =
@@ -335,6 +339,7 @@ class PlacementController extends EchoJsonController
             squared_sum_x_d: _sum(data.col(11).elements)
             squared_sum_y_d: _sum(data.col(14).elements)
             total_d: _sum(data.col(15).elements)
+        console.log("delta_cost_matrix", data, totals)
         return delta_cost_matrix: data, totals: totals
 
     update_swap_context_info: () =>
