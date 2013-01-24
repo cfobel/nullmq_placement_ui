@@ -285,9 +285,16 @@ class PlacementController extends EchoJsonController
                                     # Allow the popover to be repositioned by
                                     # clicking and dragging.
                                     $(this.$tip).draggable()
+                                    $(".popover-content", this.$tip).addClass("alert")
+                                    if d.swap_result.swap_accepted
+                                        $(".popover-content", this.$tip).addClass("alert-success")
                             else
                                 popover_options.content = "Swap was not evaluated"
-                                popover_options.onShown = () -> $(this.$tip).draggable()
+                                popover_options.onShown = () ->
+                                    $(this.$tip).draggable()
+                                    $(".popover-content", this.$tip)
+                                        .addClass("alert")
+                                        .addClass("alert-error")
                             $("#id_swap_show_delta_cost_" + d.swap_i).clickover(popover_options)
                         catch e
                             @_last_error = e
