@@ -78,6 +78,15 @@ class PlacementController extends EchoJsonController
                swaps.push(s)
         return (s.swap_i for s in swaps)
 
+    connected_block_ids: (block_id) =>
+        connected_block_ids = []
+        net_ids = @block_to_net_ids[block_id]
+        for i in [0..@block_net_counts[block_id] - 1]
+            net_id = net_ids[i]
+            for block_id in @net_to_block_ids[net_id]
+                connected_block_ids.push(block_id)
+        return _.sortBy(_.uniq(connected_block_ids), (v) -> v)
+
     select_block_elements_by_ids: (block_ids) =>
         if block_ids.length > 0
             block_element_ids = (".block_" + i for i in block_ids)
@@ -509,11 +518,21 @@ class PlacementController extends EchoJsonController
         )
 
     load_config: () =>
+        obj = @
         @do_request({"command": "config"}, (response) =>
-                config = response.result
-                for a, i in config.area_ranges
-                    a = new AreaRange(a[0], a[1], a[2], a[3])
-                    @placement_grid.highlight_area_range(a)
+            config = response.result
+            for a, i in config.area_ranges
+                a = new AreaRange(a[0], a[1], a[2], a[3])
+                @placement_grid.highlight_area_range(a)
+            @do_request({"command": "net_to_block_id_list"}, (value) =>
+                obj.net_to_block_ids = value.result
+                @do_request({"command": "block_to_net_ids"}, (value) =>
+                    obj.block_to_net_ids = value.result
+                    @do_request({"command": "block_net_counts"}, (value) =>
+                        obj.block_net_counts = value.result
+                    )
+                )
+            )
         )
 
     apply_swap_results: () =>
