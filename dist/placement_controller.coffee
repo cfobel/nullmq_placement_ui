@@ -255,65 +255,41 @@ class PlacementController extends EchoJsonController
                                                 console.log(k, (k of delta_column_ids))
                                                 if (k of delta_column_ids)
                                                     if r < 0
-                                                        cell.style("background-color", "#D5ECBF")
-                                                            .style("border-color", "#D2E6AB")
-                                                            .style("color", "#669533")
+                                                        cell.attr("class", "improving")
                                                     else if r > 0
-                                                        cell.style("background-color", "#F2BDB1")
-                                                            .style("border-color", "#F0A5A4")
-                                                            .style("color", "#BD4247")
+                                                        cell.attr("class", "non_improving")
                                             obj._test = [delta_column_ids, (4 of delta_column_ids)]
                                         # Append footer row
                                         row = tbody.append("tr").attr("class", "net_delta_row")
                                         row.append("th").attr("colspan", 4).html("Total")
                                         cell = row.append("th").html(totals.sum_x_d)
                                         if totals.sum_x_d < 0
-                                            cell.style("background-color", "#D5ECBF")
-                                                .style("border-color", "#D2E6AB")
-                                                .style("color", "#669533")
-                                        else if totals.sum_x_d > 0
-                                            cell.style("background-color", "#F2BDB1")
-                                                .style("border-color", "#F0A5A4")
-                                                .style("color", "#BD4247")
+                                            cell.attr("class", "improving")
+                                        else if r > 0
+                                            cell.attr("class", "non_improving")
                                         row.append("th").attr("colspan", 2).html("&nbsp;")
                                         cell = row.append("th").html(totals.sum_y_d)
                                         if totals.sum_y_d < 0
-                                            cell.style("background-color", "#D5ECBF")
-                                                .style("border-color", "#D2E6AB")
-                                                .style("color", "#669533")
-                                        else if totals.sum_y_d > 0
-                                            cell.style("background-color", "#F2BDB1")
-                                                .style("border-color", "#F0A5A4")
-                                                .style("color", "#BD4247")
+                                            cell.attr("class", "improving")
+                                        else if r > 0
+                                            cell.attr("class", "non_improving")
                                         row.append("th").attr("colspan", 2).html("&nbsp;")
                                         cell = row.append("th").html(totals.squared_sum_x_d)
                                         if totals.squared_sum_x_d < 0
-                                            cell.style("background-color", "#D5ECBF")
-                                                .style("border-color", "#D2E6AB")
-                                                .style("color", "#669533")
-                                        else if totals.squared_sum_x_d > 0
-                                            cell.style("background-color", "#F2BDB1")
-                                                .style("border-color", "#F0A5A4")
-                                                .style("color", "#BD4247")
+                                            cell.attr("class", "improving")
+                                        else if r > 0
+                                            cell.attr("class", "non_improving")
                                         row.append("th").attr("colspan", 2).html("&nbsp;")
                                         cell = row.append("th").html(totals.squared_sum_y_d)
-                                        if totals.squarted_sum_y_d < 0
-                                            cell.style("background-color", "#D5ECBF")
-                                                .style("border-color", "#D2E6AB")
-                                                .style("color", "#669533")
-                                        else if totals.squarted_sum_y_d > 0
-                                            cell.style("background-color", "#F2BDB1")
-                                                .style("border-color", "#F0A5A4")
-                                                .style("color", "#BD4247")
+                                        if totals.squared_sum_y_d < 0
+                                            cell.attr("class", "improving")
+                                        else if r > 0
+                                            cell.attr("class", "non_improving")
                                         cell = row.append("th").html(totals.total_d)
                                         if totals.total_d < 0
-                                            cell.style("background-color", "#D5ECBF")
-                                                .style("border-color", "#D2E6AB")
-                                                .style("color", "#669533")
-                                        else if totals.total_d > 0
-                                            cell.style("background-color", "#F2BDB1")
-                                                .style("border-color", "#F0A5A4")
-                                                .style("color", "#BD4247")
+                                            cell.attr("class", "improving")
+                                        else if r > 0
+                                            cell.attr("class", "non_improving")
 
                                     width = -1
 
