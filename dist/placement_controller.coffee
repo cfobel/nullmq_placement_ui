@@ -1,3 +1,70 @@
+class Net
+    constructor: (@grid, @net_id, @block_ids) ->
+        @dom_id = "id_net_" + @net_id
+        @grid.grid.append("g").attr("id", @dom_id)
+
+    element: () -> d3.selectAll("#" + @dom_id)
+
+    block_coords: ->
+        coords = []
+        for b in @block_ids
+            p = @grid.block_positions[b]
+            coords.push(x: p.x, y: p.y)
+        coords
+    center_of_gravity: ->
+        x_sum = 0
+        y_sum = 0
+        coords = @block_coords()
+        for c in coords
+            x_sum += c.x
+            y_sum += c.y
+        x: x_sum / coords.length, y: y_sum / coords.length
+    highlight_blocks: () ->
+        for b in @block_ids
+            d3.select("#id_block_" + b)
+                .style("stroke-width", "5px")
+                .style("opacity", 0.8)
+    unhighlight_blocks: () ->
+        for b in @block_ids
+            d3.select("#id_block_" + b)
+                .style("stroke-width", "1px")
+                .style("opacity", 0.2)
+    unhighlight: () =>
+        cog = @element().selectAll(".center_of_gravity")
+        links = @element().selectAll(".net_link").remove()
+        console.log("unhighlight", cog, links, @)
+        cog.remove()
+        links.remove()
+        @unhighlight_blocks()
+    highlight: () ->
+        @highlight_blocks()
+        @draw_links()
+        cog = @grid.cell_center(@center_of_gravity())
+        @element().append("circle")
+            .attr("class", "center_of_gravity")
+            .attr("data-net_id", @net_id)
+            .attr("cx", cog.x)
+            .attr("cy", cog.y)
+            .attr("r", 8)
+            .style("fill", "steelblue")
+    draw_links: ->
+        root_coords = @grid.cell_center(@center_of_gravity())
+        target_coords = _.map(@block_coords(), @grid.cell_center)
+        net_links = @element().selectAll(".net_link")
+          .data(target_coords, (d, i) -> [root_coords, d])
+        net_links.enter()
+          .append("line")
+            .attr("class", "net_link")
+            .attr("pointer-events", "none")
+        net_links.exit().remove()
+        net_links.attr("x1", root_coords.x)
+            .attr("y1", root_coords.y)
+            .attr("x2", (d) -> d.x)
+            .attr("y2", (d) -> d.y)
+            .style("stroke", "black")
+            .style("stroke-opacity", 0.7)
+
+
 class PlacementController extends EchoJsonController
     constructor: (@placement_grid, @context, @action_uri, @swap_uri) ->
         @swap_contexts = new Array()
@@ -42,6 +109,8 @@ class PlacementController extends EchoJsonController
         d3.selectAll(".swap_context_row").attr("class", "swap_context_row")
         id_text = "#id_swap_context_row_" + @swap_context_i
         test = d3.selectAll(id_text).attr("class", "swap_context_row alert alert-info")
+        block_ids = @placement_grid.selected_block_ids()
+        @update_net_link_formats(block_ids)
 
     select_link_elements_by_block_ids: (block_ids, only_master=true, accepted=true, skipped=true, non_participate=true) =>
         swap_ids = @swap_ids_for_block_ids(block_ids, only_master, accepted, skipped, non_participate)
@@ -83,9 +152,30 @@ class PlacementController extends EchoJsonController
         net_ids = @block_to_net_ids[block_id]
         for i in [0..@block_net_counts[block_id] - 1]
             net_id = net_ids[i]
-            for block_id in @net_to_block_ids[net_id]
-                connected_block_ids.push(block_id)
-        return _.sortBy(_.uniq(connected_block_ids), (v) -> v)
+            for b in @net_to_block_ids[net_id]
+                if b != block_id
+                    connected_block_ids.push(b)
+        return _.sortBy(_.uniq(connected_block_ids), (v) -> v) #, (name: i for i in [0..10])]
+
+    connected_block_ids_by_root_block_ids: (block_ids) =>
+        (root: b,  connected_block_ids: @connected_block_ids(b) for b in block_ids)
+
+    nets_by_block_id: (block_ids) ->
+        nets = {}
+        for b in block_ids
+            nets[b] = (@net_by_id(n) for n in @block_to_net_ids[b] when n >= 0)
+        nets
+
+    map_nets_by_block_id: (block_ids, f) ->
+        nets_by_block_id = @nets_by_block_id(block_ids)
+        results = []
+        for b, nets of nets_by_block_id
+            results.push(_.map(nets, f))
+        results
+
+    net_by_id: (net_id) =>
+        block_ids = @net_to_block_ids[net_id]
+        return new Net(@placement_grid, net_id, block_ids)
 
     select_block_elements_by_ids: (block_ids) =>
         if block_ids.length > 0
@@ -148,6 +238,9 @@ class PlacementController extends EchoJsonController
             @highlight_block_swaps(block_ids.concat([i]))
             @update_swap_list_info(block_ids.concat([i]))
 
+        @update_net_link_formats(block_ids.concat([i]))
+
+        obj = @
         # Update current block info table
         current_info = d3.select("#placement_info_current")
                 .selectAll(".placement_info")
@@ -155,13 +248,55 @@ class PlacementController extends EchoJsonController
         current_info.enter()
                 .append("div")
                 .attr("class", "placement_info")
-                .html((d) -> placement_grid.template(d))
+                .html((d) ->
+                    net_ids = (b for b in obj.block_to_net_ids[i] when b >= 0)
+                    value = $().extend({net_ids: net_ids}, d)
+                    placement_grid.template(value)
+                )
         current_info.exit().remove()
+
+    update_net_link_formats: (block_ids) =>
+        obj = @
+        connected_block_ids = @connected_block_ids_by_root_block_ids(block_ids)
+        net_link_groups = @placement_grid.grid.selectAll(".net_link_group").data(
+            connected_block_ids, (d) ->
+                b = obj.placement_grid.block_positions[d.root]
+                coords = x: b.x, y: b.y
+                coords
+        )
+
+        net_link_groups.enter()
+          .append("g")
+            .attr("class", "net_link_group")
+        net_link_groups.exit().remove()
+
+        net_link_groups.each((d) ->
+            root_coords = obj.placement_grid.cell_center(
+                    obj.placement_grid.block_positions[d.root])
+            target_coords = []
+            for b in d.connected_block_ids
+                target_coords.push(obj.placement_grid.cell_center(
+                        obj.placement_grid.block_positions[b]))
+            net_links = d3.select(this).selectAll(".net_link")
+              .data(target_coords, (d, i) -> [root_coords, d])
+            net_links.enter()
+              .append("line")
+                .attr("class", "net_link")
+                .attr("pointer-events", "none")
+            net_links.exit().remove()
+            net_links.attr("x1", root_coords.x)
+                .attr("y1", root_coords.y)
+                .attr("x2", (d) -> d.x)
+                .attr("y2", (d) -> d.y)
+                .style("stroke", "black")
+                .style("stroke-opacity", 0.1)
+        )
 
     block_mouseout: (d, i, from_rect) =>
         @unhighlight_block_swaps(i, from_rect)
         block_ids = @placement_grid.selected_block_ids()
         @update_swap_list_info(block_ids)
+        @update_net_link_formats(block_ids)
 
     initialize: (callback) ->
         if not @initialized
@@ -506,6 +641,8 @@ class PlacementController extends EchoJsonController
         if @iterate_action = @iterate_actions.REQUEST_SWAPS
             swap_context = @current_swap_context()
             @placement_grid.set_block_positions(swap_context.block_positions)
+            block_ids = @placement_grid.selected_block_ids()
+            @update_net_link_formats(block_ids)
             @iterate_action = @iterate_actions.APPLY_SWAPS
 
     load_placement: (load_config=false) ->
@@ -552,6 +689,8 @@ class PlacementController extends EchoJsonController
                     moved_count += 1
             @placement_grid.set_block_positions(block_positions)
             @iterate_action = @iterate_actions.REQUEST_SWAPS
+            block_ids = @placement_grid.selected_block_ids()
+            @update_net_link_formats(block_ids)
             return moved_count
         else
             error = 
@@ -567,6 +706,7 @@ class PlacementController extends EchoJsonController
             swap_context.update_block_formats(@placement_grid)
             block_ids = @placement_grid.selected_block_ids()
             @highlight_block_swaps(block_ids)
+            @update_net_link_formats(block_ids)
             @iterate_action = @iterate_actions.APPLY_SWAPS
         catch error
             # There is no current swap context, so do nothing
@@ -647,3 +787,4 @@ class PlacementController extends EchoJsonController
         super message, _on_recv
 
 @PlacementController = PlacementController
+@Net = Net

@@ -450,6 +450,16 @@ class PlacementGrid
 
     selected: (block_id) -> block_id of @_selected_blocks
 
+    update_selected_block_info: () ->
+        data = (@block_positions[block_id] for block_id in @selected_block_ids())
+        infos = @selected_container.selectAll(".placement_info")
+            .data(data, (d) -> d.block_id)
+        infos.enter()
+          .append("div")
+            .attr("class", "placement_info")
+        infos.exit().remove()
+        infos.html((d) -> placement_grid.template($().extend({net_ids: ''}, d)))
+
     set_raw_block_positions: (raw_block_positions) ->
         @set_block_positions(@translate_block_positions(raw_block_positions))
 
