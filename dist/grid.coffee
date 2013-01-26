@@ -240,8 +240,11 @@ class SwapContext
                 curve.d()
             )
 
-    apply_swaps: () ->
-        block_positions = $.extend(true, [], @block_positions)
+    apply_swaps: (block_positions=null) ->
+        if block_positions == null
+            block_positions = @block_positions
+        # Make a copy of the block positions
+        block_positions = $.extend(true, [], block_positions)
         # Update the block positions array based on the accepted swaps in the
         # current context.
         for swap_i,swap_info of @accepted

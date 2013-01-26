@@ -67,6 +67,9 @@ class Net
 
 class ModifierController extends EchoJsonController
     constructor: (@placement_grid, @context, @action_uri, @swap_uri) ->
+        @placement_i = -1
+        @placement_manager = new PlacementManager()
+
         @swap_contexts = new Array()
         super @context, @action_uri
         @swap_fe = @context.socket(nullmq.SUB)
@@ -305,8 +308,17 @@ class ModifierController extends EchoJsonController
         obj = @
         if not @initialized
             @do_request({"command": "initialize", "kwargs": {"depth": 2}}, () ->
-                $(obj).trigger("initialized")
-                @initialized = true
+                obj.do_request({"command": "net_to_block_id_list"}, (value) ->
+                    obj.net_to_block_ids = value.result
+                    obj.do_request({"command": "block_to_net_ids"}, (value) ->
+                        obj.block_to_net_ids = value.result
+                        obj.do_request({"command": "block_net_counts"}, (value) ->
+                            obj.block_net_counts = value.result
+                            $(obj).trigger(type: "initialized", controller: obj)
+                            obj.initialized = true
+                        )
+                    )
+                )
             )
 
     _iterate_count: 1
@@ -632,9 +644,20 @@ class ModifierController extends EchoJsonController
         return current_swap_context
 
     process_swap: (message) =>
-        swap_context = @current_swap_context()
-        swap_info = @deserialize(message)
-        swap_context.process_swap(swap_info)
+        swap_message = @deserialize(message)
+        if swap_message.type == 'swaps_start'
+            # Create a new swap context
+            @_swap_context = new SwapContext()
+        else if swap_message.type == 'swap_info'
+            swap_context = @current_swap_context()
+            swap_context.process_swap(swap_message)
+            @_swap_context.process_swap(swap_message)
+        else if swap_message.type == 'swaps_end'
+            # We've reached the end of this round of swaps.  We can now
+            # add the completed swap context to the `placement_manager`
+            @placement_manager.append_swap_context(@_swap_context)
+        else
+            console.log(swap_message, "[process_swap] unknown message type: " + swap_message.type)
 
     iterate_swap_eval: (on_recv, count) ->
         if count == undefined
@@ -651,6 +674,17 @@ class ModifierController extends EchoJsonController
             @update_net_link_formats(block_ids)
             @iterate_action = @iterate_actions.APPLY_SWAPS
 
+    translate_block_positions: (block_positions) ->
+        data = new Array()
+        for position, i in block_positions
+            item =
+                block_id: i
+                x: position[0]
+                y: position[1]
+                z: position[2]
+            data.push(item)
+        return data
+
     load_placement: (load_config=false) ->
         obj = @
         @do_request({"command": "get_block_positions"}, (value) =>
@@ -658,7 +692,24 @@ class ModifierController extends EchoJsonController
             if load_config
                 @load_config()
             @iterate_action = @iterate_actions.REQUEST_SWAPS
+
+            options =
+                block_positions: @translate_block_positions(value.result)
+                net_to_block_ids: obj.net_to_block_ids
+                block_to_net_ids: obj.block_to_net_ids
+                block_net_counts: obj.block_net_counts
+            placement = new Placement(options)
+            $(obj).trigger(type: "placement_loaded", placement: placement)
+            obj.placement_manager.append_placement(placement)
+            if obj.placement_i < 0
+                # There is no placement currently selected, so automatically
+                # select the new placement.
+                obj.placement_i = 0
+                $(obj).trigger(type: "placement_focus_set", placement_i: obj.placement_i, placement: placement)
         )
+
+    get_placement: ->
+        @placement_manager.placements[@placement_i]
 
     load_config: () =>
         obj = @
@@ -740,6 +791,10 @@ class ModifierController extends EchoJsonController
             @apply_swap_results()
             @iterate_action = @iterate_actions.REQUEST_SWAPS
             @undo_swaps()
+        if swap_context_i < @placement_manager.placements.length
+            @placement_i = swap_context_i
+            placement = @placement_manager.placements[@placement_i]
+            $(@).trigger(type: "placement_focus_set", placement_i: @placement_i, placement: placement)
 
     home: () => @goto(0)
 

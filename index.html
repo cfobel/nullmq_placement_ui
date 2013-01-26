@@ -228,6 +228,7 @@ th.center {
 
 <script type="text/coffeescript" src="/dist/grid.coffee"></script>
 <script type="text/coffeescript" src="/dist/echo_controller.coffee"></script>
+<script type="text/coffeescript" src="/dist/placement_manager.coffee"></script>
 <script type="text/coffeescript" src="/dist/modifier_controller.coffee"></script>
 <script type="text/coffeescript">
     #@context = new nullmq.Context('ws://maeby.fobel.net:9000')
@@ -243,6 +244,7 @@ th.center {
         placement_grid.clear_selection()
     )
     $(modifier_controller).on("initialized", (e) -> console.log("controller initialized"))
+    $(modifier_controller).on("placement_focus_set", (e) -> console.log(e.type, e.placement_i))
     modifier_controller.initialize()
 
     $("#id_load_placement").click(() ->
