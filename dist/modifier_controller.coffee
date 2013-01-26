@@ -65,7 +65,7 @@ class Net
             .style("stroke-opacity", 0.7)
 
 
-class PlacementController extends EchoJsonController
+class ModifierController extends EchoJsonController
     constructor: (@placement_grid, @context, @action_uri, @swap_uri) ->
         @swap_contexts = new Array()
         super @context, @action_uri
@@ -94,6 +94,9 @@ class PlacementController extends EchoJsonController
                 d3.select("#swap_context_detail_template").html()
         @swap_context_detail_template =
                 _.template(@swap_context_detail_template_text)
+
+        obj = @
+        $(obj).on("initialized", (e) -> obj.load_placement(true))
 
     decrement_swap_context_i: () =>
         @swap_context_i -= 1
@@ -299,9 +302,12 @@ class PlacementController extends EchoJsonController
         @update_net_link_formats(block_ids)
 
     initialize: (callback) ->
+        obj = @
         if not @initialized
-            @do_request({"command": "initialize", "kwargs": {"depth": 2}}, callback)
-            @initialized = true
+            @do_request({"command": "initialize", "kwargs": {"depth": 2}}, () ->
+                $(obj).trigger("initialized")
+                @initialized = true
+            )
 
     _iterate_count: 1
     _iterate_i: 0
@@ -786,5 +792,5 @@ class PlacementController extends EchoJsonController
             on_recv(response)
         super message, _on_recv
 
-@PlacementController = PlacementController
+@ModifierController = ModifierController
 @Net = Net

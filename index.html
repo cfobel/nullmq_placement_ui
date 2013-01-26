@@ -17,6 +17,7 @@
 <script type="text/javascript" src="/dist/lib/glUtils.js"></script>
 <script type="text/javascript" src="/dist/bootstrap/js/bootstrap.min.js"></script>
 <script type="text/javascript" src="/dist/bootstrap/js/bootstrapx-clickover.js"></script>
+<script type="text/javascript" src="/dist/lib/bootstrap-contextmenu.js"></script>
 <style  type="text/css">
 .improving {
     background-color: #D5ECBF !important;
@@ -227,7 +228,7 @@ th.center {
 
 <script type="text/coffeescript" src="/dist/grid.coffee"></script>
 <script type="text/coffeescript" src="/dist/echo_controller.coffee"></script>
-<script type="text/coffeescript" src="/dist/placement_controller.coffee"></script>
+<script type="text/coffeescript" src="/dist/modifier_controller.coffee"></script>
 <script type="text/coffeescript">
     #@context = new nullmq.Context('ws://maeby.fobel.net:9000')
     @context = new nullmq.Context('ws://localhost:9000')
@@ -236,29 +237,30 @@ th.center {
         width = eval(width.substr(0, width.length - 2))
     @placement_grid = new PlacementGrid("chart", 0.75 * width)
 
-    @placement_controller = new PlacementController(@placement_grid, @context,
+    @modifier_controller = new ModifierController(@placement_grid, @context,
             'tcp://localhost:9003', 'tcp://localhost:9051')
     $("#id_clear_selection").click(() =>
         placement_grid.clear_selection()
     )
-    placement_controller.initialize(() -> placement_controller.load_placement(true))
+    $(modifier_controller).on("initialized", (e) -> console.log("controller initialized"))
+    modifier_controller.initialize()
 
     $("#id_load_placement").click(() ->
-        placement_controller.load_placement(true)
+        modifier_controller.load_placement(true)
     )
 
-    Mousetrap.bind('home', () -> placement_controller.home())
-    Mousetrap.bind('end', () -> placement_controller.end())
-    Mousetrap.bind('space', () -> placement_controller.next())
-    Mousetrap.bind('n', () -> placement_controller.next())
-    Mousetrap.bind('p', () -> placement_controller.previous())
-    Mousetrap.bind('down', () -> placement_controller.previous())
-    Mousetrap.bind('up', () -> placement_controller.next())
-    Mousetrap.bind('left', () -> placement_controller.previous())
-    Mousetrap.bind('right', () -> placement_controller.next())
-    Mousetrap.bind('a', () -> placement_controller.apply_swap_results())
-    Mousetrap.bind('u', () -> placement_controller.undo_swaps())
-    Mousetrap.bind('l', () -> placement_controller.load_placement(true));
+    Mousetrap.bind('home', () -> modifier_controller.home())
+    Mousetrap.bind('end', () -> modifier_controller.end())
+    Mousetrap.bind('space', () -> modifier_controller.next())
+    Mousetrap.bind('n', () -> modifier_controller.next())
+    Mousetrap.bind('p', () -> modifier_controller.previous())
+    Mousetrap.bind('down', () -> modifier_controller.previous())
+    Mousetrap.bind('up', () -> modifier_controller.next())
+    Mousetrap.bind('left', () -> modifier_controller.previous())
+    Mousetrap.bind('right', () -> modifier_controller.next())
+    Mousetrap.bind('a', () -> modifier_controller.apply_swap_results())
+    Mousetrap.bind('u', () -> modifier_controller.undo_swaps())
+    Mousetrap.bind('l', () -> modifier_controller.load_placement(true));
     Mousetrap.bind('z', placement_grid.set_zoom_location);
 
     $("a[rel=popover]")
