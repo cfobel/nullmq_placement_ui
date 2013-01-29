@@ -68,23 +68,30 @@ class Net
 class ModifierController extends EchoJsonController
     constructor: (@placement_grid, @context, @action_uri, @swap_uri) ->
         @placement_i = -1
-        @placement_manager = new PlacementManager()
+        options =
+            nullmq_context: @context
+            action_uri: @action_uri
+            status_uri: @swap_uri
+        @placement_manager = new RemotePlacementManager(options)
 
+        # TODO:
+        #   -Migrate ModifierController code to use RemotePlacementManager
+        #     rather than @swap_contexts list
         @swap_contexts = new Array()
         super @context, @action_uri
         @swap_fe = @context.socket(nullmq.SUB)
         @swap_fe.connect(@swap_uri)
         @swap_fe.setsockopt(nullmq.SUBSCRIBE, "")
-        @swap_fe.recvall(@process_swap)
+        #@swap_fe.recvall(@process_swap)
         @initialized = false
         @placement_grid.block_mouseover = @block_mouseover
         @placement_grid.block_mouseout = @block_mouseout
         @to_rect = null
         @iterate_actions = 
-            REQUEST_SWAPS: 10
+            SHOW_SWAPS: 10
             APPLY_SWAPS:   20
-        @iterate_action = @iterate_actions.REQUEST_SWAPS
-        @swap_context_i = -1
+        @iterate_action = @iterate_actions.SHOW_SWAPS
+        @swap_context_i = null
         _.templateSettings =
           interpolate: /\{\{(.+?)\}\}/g
         @swap_template_text = d3.select("#swap_template").html()
@@ -98,16 +105,29 @@ class ModifierController extends EchoJsonController
         @swap_context_detail_template =
                 _.template(@swap_context_detail_template_text)
 
+        @_listening_for_update = false
+        @_previous_swap_context
+
         obj = @
         $(obj).on("initialized", (e) -> obj.load_placement(true))
-
-    decrement_swap_context_i: () =>
-        @swap_context_i -= 1
-        @on_swap_context_changed()
-
-    increment_swap_context_i: () =>
-        @swap_context_i += 1
-        @on_swap_context_changed()
+        $(obj).on("placement_loaded", (e) -> console.log("on: placement_loaded", e.placement_i, e.placement))
+        $(obj).on("placement_manager_up_to_date", (e) -> console.log("on: placement_manager_up_to_date", e))
+        $(obj).on("swap_context_focus_set", (e) =>
+            console.log("{swap_context_focus_set}", @iterate_action_name(), @placement_i, @swap_context_i)
+            @apply_swap_links()
+            @update_swap_context_info()
+            @on_swap_context_changed()
+        )
+        $(obj).on("placement_focus_set", (e) -> console.log("on: placement_focus_set", e.placement_i, e.placement))
+        $(obj).on("placement_focus_set", (e) =>
+            console.log(e.placement.block_positions)
+            try
+                if @iterate_action == @iterate_actions.APPLY_SWAPS
+                    @apply_swap_results(e.placement.block_positions)
+            catch e
+                console.log("[apply_swap_results] error:", e)
+        )
+        #$(@placement_manager).on("placement_added", (e) -> console.log("on: placement_added", e.placement_count))
 
     on_swap_context_changed: () =>
         current_info = d3.select("#id_swap_context_current")
@@ -154,14 +174,18 @@ class ModifierController extends EchoJsonController
         return (s.swap_i for s in swaps)
 
     connected_block_ids: (block_id) =>
-        connected_block_ids = []
-        net_ids = @block_to_net_ids[block_id]
-        for i in [0..@block_net_counts[block_id] - 1]
-            net_id = net_ids[i]
-            for b in @net_to_block_ids[net_id]
-                if b != block_id
-                    connected_block_ids.push(b)
-        return _.sortBy(_.uniq(connected_block_ids), (v) -> v) #, (name: i for i in [0..10])]
+        try
+            connected_block_ids = []
+            net_ids = @block_to_net_ids[block_id]
+            for i in [0..@block_net_counts[block_id] - 1]
+                net_id = net_ids[i]
+                for b in @net_to_block_ids[net_id]
+                    if b != block_id
+                        connected_block_ids.push(b)
+            return _.sortBy(_.uniq(connected_block_ids), (v) -> v) #, (name: i for i in [0..10])]
+        catch error
+            @_last_error = error
+            throw error
 
     connected_block_ids_by_root_block_ids: (block_ids) =>
         (root: b,  connected_block_ids: @connected_block_ids(b) for b in block_ids)
@@ -237,9 +261,22 @@ class ModifierController extends EchoJsonController
         for block in c.connected_blocks(block_id)
             callback(block)
 
+    swap_context_available: (index=null) =>
+        if not index?
+            if not @swap_context_i?
+                @swap_context_i = @placement_i
+            index = @swap_context_i
+        available = index of @placement_manager.swap_contexts
+        console.log("[swap_context_available]", available,
+            index: index
+            swap_context_i: @swap_context_i
+            placement_i: @placement_i
+        )
+        return available
+
     block_mouseover: (d, i, from_rect) =>
         block_ids = @placement_grid.selected_block_ids()
-        if @swap_context_i >= 0
+        if @swap_context_available()
             c = @current_swap_context()
             @highlight_block_swaps(block_ids.concat([i]))
             @update_swap_list_info(block_ids.concat([i]))
@@ -559,7 +596,7 @@ class ModifierController extends EchoJsonController
         # change the GUI state to reflect the corresponding swap context state
         # (before applying the swaps from the context).
         obj = @
-        reverse_swap_contexts = (@extract_data(c, i) for c, i in @swap_contexts)
+        reverse_swap_contexts = (@extract_data(c, i) for c, i in @placement_manager.swap_contexts)
         @_last_debug_save = reverse_swap_contexts
 
         info_list = d3.select("#swap_context_list")
@@ -633,46 +670,16 @@ class ModifierController extends EchoJsonController
             )
 
     current_swap_context: () ->
-        if @swap_context_i > @swap_contexts.length - 1
+        if not @swap_context_available()
             error = 
                 message: "There are currently no swap contexts"
                 code: -100
             throw error
-        current_swap_context = @swap_contexts[@swap_context_i]
+        @swap_context_i = @swap_context_i ? @placement_i
+        current_swap_context = @placement_manager.swap_contexts[@swap_context_i]
 
         @_previous_swap_context = current_swap_context
         return current_swap_context
-
-    process_swap: (message) =>
-        swap_message = @deserialize(message)
-        if swap_message.type == 'swaps_start'
-            # Create a new swap context
-            @_swap_context = new SwapContext()
-        else if swap_message.type == 'swap_info'
-            swap_context = @current_swap_context()
-            swap_context.process_swap(swap_message)
-            @_swap_context.process_swap(swap_message)
-        else if swap_message.type == 'swaps_end'
-            # We've reached the end of this round of swaps.  We can now
-            # add the completed swap context to the `placement_manager`
-            @placement_manager.append_swap_context(@_swap_context)
-        else
-            console.log(swap_message, "[process_swap] unknown message type: " + swap_message.type)
-
-    iterate_swap_eval: (on_recv, count) ->
-        if count == undefined
-            count = 1
-        @_iterate_count = count
-        @_iterate_i = 0
-        @_iterate_continue(on_recv)
-
-    undo_swaps: () =>
-        if @iterate_action = @iterate_actions.REQUEST_SWAPS
-            swap_context = @current_swap_context()
-            @placement_grid.set_block_positions(swap_context.block_positions)
-            block_ids = @placement_grid.selected_block_ids()
-            @update_net_link_formats(block_ids)
-            @iterate_action = @iterate_actions.APPLY_SWAPS
 
     translate_block_positions: (block_positions) ->
         data = new Array()
@@ -691,7 +698,7 @@ class ModifierController extends EchoJsonController
             @placement_grid.set_raw_block_positions(value.result)
             if load_config
                 @load_config()
-            @iterate_action = @iterate_actions.REQUEST_SWAPS
+            @iterate_action = @iterate_actions.SHOW_SWAPS
 
             options =
                 block_positions: @translate_block_positions(value.result)
@@ -699,7 +706,7 @@ class ModifierController extends EchoJsonController
                 block_to_net_ids: obj.block_to_net_ids
                 block_net_counts: obj.block_net_counts
             placement = new Placement(options)
-            $(obj).trigger(type: "placement_loaded", placement: placement)
+            $(obj).trigger(type: "placement_loaded", placement_i: obj.placement_i, placement: placement)
             obj.placement_manager.append_placement(placement)
             if obj.placement_i < 0
                 # There is no placement currently selected, so automatically
@@ -729,23 +736,17 @@ class ModifierController extends EchoJsonController
             )
         )
 
-    apply_swap_results: () =>
+    apply_swap_results: (block_positions) =>
         if @iterate_action == @iterate_actions.APPLY_SWAPS
-            swap_context = @current_swap_context()
-            try
-                block_positions = swap_context.apply_swaps()
-            catch e
-                console.log("error applying swaps", e, e.stack)
-                @load_placement()
-                return
             moved_count = 0
             for block, i in block_positions
                 old_d = @placement_grid.block_positions[i]
                 new_d = block_positions[i]
                 if old_d.x != new_d.x or old_d.y != new_d.y or old_d.z != new_d.z
                     moved_count += 1
+            console.log("[apply_swap_results]", "moved_count:", moved_count)
             @placement_grid.set_block_positions(block_positions)
-            @iterate_action = @iterate_actions.REQUEST_SWAPS
+            @iterate_action = @iterate_actions.SHOW_SWAPS
             block_ids = @placement_grid.selected_block_ids()
             @update_net_link_formats(block_ids)
             return moved_count
@@ -764,77 +765,70 @@ class ModifierController extends EchoJsonController
             block_ids = @placement_grid.selected_block_ids()
             @highlight_block_swaps(block_ids)
             @update_net_link_formats(block_ids)
-            @iterate_action = @iterate_actions.APPLY_SWAPS
         catch error
             # There is no current swap context, so do nothing
             swap_context = null
 
-    iterate_and_update: (iter_count=1) =>
-    previous: () =>
-        if @swap_context_i > 0
-            c = @current_swap_context()
-            if @iterate_action == @iterate_actions.APPLY_SWAPS
-                @decrement_swap_context_i()
-                c = @current_swap_context()
-                @apply_swap_links()
-                @iterate_action = @iterate_actions.REQUEST_SWAPS
-                if c.accepted_count() <= 0
-                    @previous()
-            else
-                @undo_swaps()
-
-    goto: (swap_context_i) =>
-        if swap_context_i >= 0
-            @swap_context_i = swap_context_i
-            @on_swap_context_changed()
-            @apply_swap_links()
-            @apply_swap_results()
-            @iterate_action = @iterate_actions.REQUEST_SWAPS
-            @undo_swaps()
-        if swap_context_i < @placement_manager.placements.length
-            @placement_i = swap_context_i
-            placement = @placement_manager.placements[@placement_i]
-            $(@).trigger(type: "placement_focus_set", placement_i: @placement_i, placement: placement)
-
     home: () => @goto(0)
 
     end: () =>
-        if @swap_contexts.length >= 0
-           @goto(@swap_contexts.length - 1)
+       @goto(@placement_manager.placements.length - 1)
 
-    next: (iter_count=1, append=true) =>
-        if @swap_context_i >= 0
-            c = @current_swap_context()
-        if append and @iterate_action == @iterate_actions.REQUEST_SWAPS and
-                (@swap_context_i < 0 or
-                        @swap_context_i == @swap_contexts.length - 1)
-            if @swap_context_i >= 0 and c.all.length <= 0
-                # The current swap context does not have any swaps assigned to
-                # it, so reuse it rather than creating a new one.
-                null
-            else
-                # There is no `next` stored `SwapContext` available, so iterate to
-                # create a new one.
-                @swap_contexts.push(new SwapContext(@placement_grid.block_positions))
-            @swap_context_i = @swap_contexts.length - 1
-            @iterate_swap_eval((() =>
-                @apply_swap_links()
-                @update_swap_context_info()
-                @on_swap_context_changed()
-                @iterate_action = @iterate_actions.APPLY_SWAPS
-            ), iter_count)
-        else if @iterate_action == @iterate_actions.REQUEST_SWAPS
-            # The next `SwapContext` is already completed and cached, so simply
-            # update state.
-            @increment_swap_context_i()
-            @apply_swap_links()
+    process_update: (e) =>
+        console.log('process_update():', @placement_manager.placements.length + "/" + @_target_placement_count)
+        if @placement_manager.placements.length >= @_target_placement_count
+            # Cancel event handler
+            console.log('[process_update]:', @placement_manager.placements.length, @_target_placement_count)
+            @_listening_for_update = false
+            $(@placement_manager).off("placement_added")
+            $(@).trigger("placement_manager_up_to_date", target_placement_count: @_target_placement_count, manager_placement_count: @placement_manager.placements.length)
+        else
+            console.log('[process_update()] listening_for_update:', @_listening_for_update, @placement_manager.placements.length, @_target_placement_count)
+            if not @_listening_for_update
+                $(@placement_manager).on("placement_added", @process_update)
+                @_listening_for_update = true
+            @placement_manager.do_iteration()
+
+    previous: () =>
+        #if @iterate_action == @iterate_actions.SHOW_SWAPS
+        #$(obj).trigger(type: "placement_focus_set", placement_i: @placement_i, placement: placement)
+        if @placement_manager.placements.length > 0 and @placement_i > 0
+            @goto(@placement_i - 1)
+
+    iterate_action_name: (action_value=null) =>
+        action_value = action_value ? @iterate_action
+        for k,v of @iterate_actions
+            if v == action_value
+                return k
+        return null
+
+    next: =>
+        console.log('[next]', @iterate_action_name(), @swap_context_available())
+        if @iterate_action == @iterate_actions.SHOW_SWAPS and
+                @swap_context_available()
+            obj = @
+            $(obj).trigger(type: "swap_context_focus_set", {
+                swap_context_i: @swap_context_i,
+                swap_context: @placement_manager.swap_contexts[@swap_context_i]
+            })
             @iterate_action = @iterate_actions.APPLY_SWAPS
         else
-            @apply_swap_results()
-            @iterate_action = @iterate_actions.REQUEST_SWAPS
-            c = @current_swap_context()
-            if c.accepted_count() <= 0
-                @next(iter_count)
+            @goto(@placement_i + 1)
+            @swap_context_i = @placement_i
+
+    goto: (index, callback=null) =>
+        if @placement_manager.placements.length > index
+            @placement_i = index
+            placement = @placement_manager.placements[index]
+            obj = @
+            @iterate_action = @iterate_actions.SHOW_SWAPS
+            $(obj).trigger(type: "placement_focus_set", placement_i: @placement_i, placement: placement)
+        else
+            # Next Placement is not cached, so we need to request an
+            # update.
+            @placement_manager.do_iterations(index - @placement_i, () =>
+                @goto(index, callback)
+            )
 
     do_request: (message, on_recv) =>
         _on_recv = (response) =>
