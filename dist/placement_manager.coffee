@@ -411,8 +411,28 @@ class RemotePlacementManager extends EchoJsonController
             @_swaps_in_progress = false
             @append_swap_context(@_swap_context)
             #console.log("[process_status_update] swaps_end")
+        else if status_message.type == 'placement'
+            placement = @placements[@placements.length - 1]
+            options =
+                block_positions: translate_block_positions(status_message.block_positions)
+                net_to_block_ids: placement.net_to_block_ids
+                block_to_net_ids: placement.block_to_net_ids
+                block_net_counts: placement.block_net_counts
+            @append_placement(new Placement(options))
         else
             console.log(status_message, "[process_status] unknown message type: " + status_message.type)
+
+
+@translate_block_positions = (block_positions) ->
+    data = new Array()
+    for position, i in block_positions
+        item =
+            block_id: i
+            x: position[0]
+            y: position[1]
+            z: position[2]
+        data.push(item)
+    return data
 
 
 @PlacementManager = PlacementManager
