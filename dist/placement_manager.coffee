@@ -323,7 +323,7 @@ class PlacementManager extends Mixin
         placement = swap_context.placement_with_swaps_applied()
         @placements.push(placement)
         # N.B. `swap_contexts` is an object/dictionary
-        @swap_contexts[i] = swap_context
+        @swap_contexts[i - 1] = swap_context
         $(@).trigger(type: "swap_context_added", swap_context: swap_context, swap_context_i: i)
         $(@).trigger(type: "placement_added", placement: placement, placement_count: @placements.length)
         placement
@@ -395,6 +395,7 @@ class RemotePlacementManager extends EchoJsonController
         if status_message.type == 'swaps_start'
             # Create a new swap context
             @_swap_context = new SwapContext(@placements[@placements.length - 1])
+            @append_swap_context(@_swap_context)
             @_swaps_in_progress = true
             #console.log("[process_status_update] swaps_start")
         else if status_message.type == 'swap_info'
@@ -403,7 +404,6 @@ class RemotePlacementManager extends EchoJsonController
         else if status_message.type == 'swaps_end'
             # We've reached the end of this round of swaps.  We can now
             # add the completed swap context to the `placement_manager`
-            @append_swap_context(@_swap_context)
             @_swaps_in_progress = false
             #console.log("[process_status_update] swaps_end")
         else
