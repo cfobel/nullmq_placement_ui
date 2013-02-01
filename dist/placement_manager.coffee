@@ -400,7 +400,6 @@ class RemotePlacementManager extends EchoJsonController
         if status_message.type == 'swaps_start'
             # Create a new swap context
             @_swap_context = new SwapContext(@placements[@placements.length - 1])
-            @append_swap_context(@_swap_context)
             @_swaps_in_progress = true
             #console.log("[process_status_update] swaps_start")
         else if status_message.type == 'swap_info'
@@ -410,6 +409,7 @@ class RemotePlacementManager extends EchoJsonController
             # We've reached the end of this round of swaps.  We can now
             # add the completed swap context to the `placement_manager`
             @_swaps_in_progress = false
+            @append_swap_context(@_swap_context)
             #console.log("[process_status_update] swaps_end")
         else
             console.log(status_message, "[process_status] unknown message type: " + status_message.type)
