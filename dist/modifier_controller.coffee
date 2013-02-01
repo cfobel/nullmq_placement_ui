@@ -104,6 +104,12 @@ class ModifierController extends EchoJsonController
         @_listening_for_update = false
         @_previous_swap_context
 
+        @_states =
+            IDLE: 10
+            PERFORMING_ACTION: 20
+
+        @_state = @_states.IDLE
+
         obj = @
         $(obj).on("initialized", (e) -> obj.load_placement(true))
         $(obj).on("placement_loaded", (e) -> console.log("on: placement_loaded", e.placement_i, e.placement))
@@ -234,7 +240,7 @@ class ModifierController extends EchoJsonController
 
     unhighlight_block_swaps: (block_ids) =>
         #console.log("unhighlight_block_swaps", block_ids)
-        if @swap_context_i >= 0
+        if @swap_context_i > 0
             c = @current_swap_context()
             c.update_block_formats(@placement_grid)
             c.update_link_formats(@placement_grid)
@@ -376,6 +382,8 @@ class ModifierController extends EchoJsonController
             ["index", "accepted_count", "skipped_count", "total_count"]
 
     update_swap_list_info: (block_ids) =>
+        if @swap_context_i <= 0
+            return
         obj = @
         c = @current_swap_context()
         swap_links = @select_link_elements_by_block_ids(block_ids, false)
@@ -755,11 +763,16 @@ class ModifierController extends EchoJsonController
         catch error
             # There is no current swap context, so do nothing
             swap_context = null
+            d3.selectAll('.swap_link').remove()
+            @placement_grid.reset_block_formats()
 
-    home: () => @goto(0)
+    home: () =>
+        @_state = @_states.IDLE
+        @goto(0)
 
-    end: () =>
-       @goto(@placement_manager.placements.length - 1)
+    end: =>
+        @_state = @_states.IDLE
+        @goto(@placement_manager.placements.length - 2)
 
     process_update: (e) =>
         console.log('process_update():', @placement_manager.placements.length + "/" + @_target_placement_count)
@@ -778,18 +791,25 @@ class ModifierController extends EchoJsonController
 
     next: =>
         console.log('[next]')
+        @_state = @_states.PERFORMING_ACTION
         if @placement_i < @swap_context_i
-            @goto(@placement_i + 1)
+            @goto(@placement_i + 1, () =>
+                # Advance to next swap context
+                @_state = @_states.IDLE
+            )
         else
             @swap_context_i = @placement_i + 1
+            @_state = @_states.SWAP_CONTEXT
             obj = @
             $(obj).trigger(type: "swap_context_focus_set", {
                 swap_context_i: @swap_context_i,
                 swap_context: @placement_manager.swap_contexts[@swap_context_i]
             })
+            @_state = @_states.IDLE
 
     previous: =>
         console.log('[previous]')
+        @_state = @_states.PERFORMING_ACTION
         if @placement_i < @swap_context_i
             @swap_context_i = @placement_i
             obj = @
@@ -797,19 +817,34 @@ class ModifierController extends EchoJsonController
                 swap_context_i: @swap_context_i,
                 swap_context: @placement_manager.swap_contexts[@swap_context_i]
             })
+            @_state = @_states.IDLE
         else if @placement_manager.placements.length > 0 and @placement_i > 0
-            @goto(@placement_i - 1)
+            @goto(@placement_i - 1, () =>
+                # Advance to next swap context
+                @_state = @_states.IDLE
+            )
 
     goto: (index, callback=null) =>
-        if @placement_manager.placements.length > index + 2
-            console.log("[goto] " + @placement_i + " -> " + index + "(" + @placement_manager.placements.length + ")")
+        placements_count = @placement_manager.placements.length
+        last_swap_context_i = @placement_manager.last_i_with_swap_context()
+
+        if last_swap_context_i > index
+            console.log("[goto] " + @placement_i + " -> " + index + "(" + (placements_count) + ")")
             @placement_i = index
             placement = @placement_manager.placements[index]
             obj = @
             $(obj).trigger(type: "placement_focus_set", placement_i: @placement_i, placement: placement)
+            if @_state == @_states.IDLE
+                @swap_context_i = @placement_i
+                obj = @
+                $(obj).trigger(type: "swap_context_focus_set", {
+                    swap_context_i: @swap_context_i,
+                    swap_context: @placement_manager.swap_contexts[@swap_context_i]
+                })
         else
-            iterations = index + 2 - @placement_i
-            console.log("[goto] callback after doing " + iterations + "iterations. " + @placement_i + " -> " + index + "(" + @placement_manager.placements.length + ")")
+            iterations = index - Math.max(0, last_swap_context_i)
+            iterations = Math.max(1, iterations)
+            console.log("[goto] callback after doing " + iterations + " iterations. " + @placement_i + " -> " + index + "(" + (placements_count) + ")")
             # Next two Placements are not cached, so we need to request an
             # update.
             @placement_manager.do_iterations(iterations, () =>

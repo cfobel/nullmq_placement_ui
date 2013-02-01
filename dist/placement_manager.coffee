@@ -188,10 +188,10 @@ class SwapContext
     set_swap_link_data: (placement_grid) ->
         # Create a d3 diagonal between the blocks involved in each swap
         # configuration in the current context.
-        swap_links = placement_grid.grid.selectAll(".link").data(@all)
+        swap_links = placement_grid.grid.selectAll(".swap_link").data(@all)
         swap_links.enter()
             .append("svg:path")
-            .attr("class", "link")
+            .attr("class", "swap_link")
             .attr("id", (d) -> "id_swap_link_" + d.swap_i)
             .style("fill", "none")
             .style("pointer-events", "none")
@@ -228,7 +228,7 @@ class SwapContext
 
     update_link_formats: (placement_grid) ->
         # Update the style and end-point locations for each swap link.
-        swap_links = placement_grid.grid.selectAll(".link")
+        swap_links = placement_grid.grid.selectAll(".swap_link")
         curve = new Curve()
         curve.translate(placement_grid.cell_center)
         swap_links.style("stroke-width", 1)
@@ -307,6 +307,11 @@ class PlacementManager extends Mixin
     setup: ->
         @placements = []
         @swap_contexts = {}
+    last_i_with_swap_context: =>
+        for i in [@placements.length..-1]
+            if i of @swap_contexts
+                return i
+        return -1
     append_placement: (placement) ->
         @placements.push(placement)
         obj = @
@@ -323,7 +328,7 @@ class PlacementManager extends Mixin
         placement = swap_context.placement_with_swaps_applied()
         @placements.push(placement)
         # N.B. `swap_contexts` is an object/dictionary
-        @swap_contexts[i - 1] = swap_context
+        @swap_contexts[i] = swap_context
         $(@).trigger(type: "swap_context_added", swap_context: swap_context, swap_context_i: i)
         $(@).trigger(type: "placement_added", placement: placement, placement_count: @placements.length)
         placement

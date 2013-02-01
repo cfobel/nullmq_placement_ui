@@ -4,6 +4,54 @@ class Block
     rect: (grid) => d3.select("#" + grid.grid_container.attr("id") + " ." + @rect_id())
 
 
+class Curve
+    constructor: (@_source=null, @_target=null, @_translate=null) ->
+        if @_translate == null
+            @_translate = (coords) -> coords
+    translate: (t=null) =>
+        if t != null
+            @_translate = t
+            @
+        else
+            @_translate
+    target: (t=null) =>
+        if t != null
+            @_target = t
+            @
+        else
+            @_target
+    source: (s=null) =>
+        if s != null
+            @_source = s
+            @
+        else
+            @_source
+    d: () =>
+        coords =
+            source: @translate()(@source())
+            target: @translate()(@target())
+        if @source().y != @target().y and @source().x != @target().x
+            path_text = d3.svg.diagonal()
+                .source(coords.source)
+                .target(coords.target)()
+        else
+            # The source and target share the same row or column.  Use an arc
+            # to connect them rather than a diagonal.  A diagonal degrades to a
+            # straight line in this case, making it difficult to distinguish
+            # overlapping links.
+            dx = coords.target.x - coords.source.x
+            dy = coords.target.y - coords.source.y
+            dr = Math.sqrt(dx * dx + dy * dy)
+            if @source().y == @target().y and @source().x % 2 == 0
+                flip = 1
+            else if @source().x == @target().x and @source().y % 2 == 0
+                flip = 1
+            else
+                flip = 0
+            path_text = "M" + coords.source.x + "," + coords.source.y + "A" + dr + "," + dr + " 0 0," + flip + " " + coords.target.x + "," + coords.target.y
+        return path_text
+
+
 class PlacementGrid
     constructor: (@id, @width=null) ->
         @zoom = d3.behavior.zoom()
@@ -186,6 +234,13 @@ class PlacementGrid
         #@update_cell_formats()
         @update_cell_positions()
         #@update_selected_block_info()
+
+    reset_block_formats: ->
+        blocks = @grid.selectAll('.block')
+            .style("stroke", '#555')
+            .style("fill", "black")
+            .style('opacity', 1.0)
+            .style('stroke-width', 1.0)
 
     update_cell_data: () ->
         # Each tag of class `cell` is an SVG group tag.  Each such group
