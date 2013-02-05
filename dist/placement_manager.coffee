@@ -384,7 +384,7 @@ class RemotePlacementManager extends EchoJsonController
             if increment
                 @_outstanding_placement_requests += 1
             @_iteration_in_progress = true
-            @do_request({"command": "iter.next"}, () =>
+            @do_request({"command": "iter__next"}, () =>
                 # Here we subtract the observed change in the number of
                 # placements from the number of outstanding placement
                 # requests.

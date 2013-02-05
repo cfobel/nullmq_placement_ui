@@ -364,11 +364,11 @@ class ModifierController extends EchoJsonController
     _previous_swap_context: null
     _iterate_continue: (on_recv) ->
         if @_iterate_i < @_iterate_count - 1
-            @do_request({"command": "iter.next"}, (value) =>
+            @do_request({"command": "iter__next"}, (value) =>
                 @_iterate_i += 1
                 @_iterate_continue(on_recv))
         else
-            @do_request({"command": "iter.next"}, on_recv)
+            @do_request({"command": "iter__next"}, on_recv)
 
     extract_data: (d, i) =>
         index: i
