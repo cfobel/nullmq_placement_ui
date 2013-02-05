@@ -345,7 +345,7 @@ class ModifierController extends EchoJsonController
     initialize: (callback) ->
         obj = @
         if not @initialized
-            @do_request({"command": "initialize", "kwargs": {"depth": 2}}, () ->
+            @do_request({"command": "initialize", args: ["tcp://*:9051", ], kwargs: {depth: 2}}, () ->
                 obj.do_request({"command": "net_to_block_id_list"}, (value) ->
                     obj.net_to_block_ids = value.result
                     obj.do_request({"command": "block_to_net_ids"}, (value) ->
