@@ -1,0 +1,275 @@
+<!DOCTYPE html PUBLIC "-/>
+<html lang="en">
+<head>
+<title>NullMQ placement server example</title>
+<link href="/dist/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+<link href="/dist/bootstrap/css/bootstrap-responsive.css" rel="stylesheet">
+<link href="/dist/lib/jquery-ui.css" rel="stylesheet">
+<script type="text/javascript" src="/dist/lib/jquery-latest.js"></script>
+<script type="text/javascript" src="/dist/lib/jquery-ui.js"></script>
+<script type="text/javascript" src="/dist/lib/coffee-script.js"></script>
+<script type="text/javascript" src="/dist/lib/d3.v2.js"></script>
+<script type="text/javascript" src="/dist/lib/underscore-min.js"></script>
+<script type="text/javascript" src="/dist/lib/mousetrap.min.js"></script>
+<script type="text/javascript" src="/dist/lib/stomp.js"></script>
+<script type="text/javascript" src="/dist/lib/nullmq.js"></script>
+<script type="text/javascript" src="/dist/lib/sylvester.js"></script>
+<script type="text/javascript" src="/dist/lib/glUtils.js"></script>
+<script type="text/javascript" src="/dist/bootstrap/js/bootstrap.min.js"></script>
+<script type="text/javascript" src="/dist/bootstrap/js/bootstrapx-clickover.js"></script>
+<script type="text/javascript" src="/dist/lib/bootstrap-contextmenu.js"></script>
+<style  type="text/css">
+.improving {
+    background-color: #D5ECBF !important;
+    border-color: #D2E6AB !important;
+    color: #669533 !important;
+}
+.non_improving {
+    background-color: #F2BDB1 !important;
+    border-color: #F0A5A4 !important;
+    color: #BD4247 !important;
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<section id="placement_server_example">
+  <div class="page-header">
+    <h1>NullMQ placement server example</h1>
+  </div>
+  <div class="row">
+    <p class="lead">Click the button below to load block positions from placement controller.</p>
+    <fieldset>
+        <label>NullMQ-to-ZeroMQ bridge URI</label>
+        <select id="id_nullmq_zmq_bridge">
+          <option value="ws://localhost:9000" default>localhost:9000</option>
+          <option value="ws://maeby.fobel.net:9000">maeby.fobel.net:9000</option>
+        </select>
+        <label>Select architecture:</label>
+        <select id="id_architecture_chooser"></select>
+        <label>Select netlist:</label>
+        <select id="id_netlist_chooser"></select>
+        <!--<button name="load_placement" id="id_load_placement">Load placement</button>-->
+        <button name="reset" id="id_reset">Reset</button>
+    </fieldset>
+  </div>
+</section>
+
+<section id="placement">
+  <div class="row">
+    <div id="chart" class="span8 visible"></div>
+    <div class="span4">
+      <div class="row">
+        <div style="vertical-align: middle">
+          <h3 class="pull-left">Current swap: </h3>
+          <h1 id="id_swap_current_index" class="pull-right"></h1>
+        </div>
+        <style type="text/css" media="all">
+th.center {
+    text-align: center;
+}
+        </style>
+        <div class="invisible">
+          <table class="table table-condensed table-bordered table-striped">
+            <tbody class="from_delta_template" style="font-size: 60%;">
+              <tr>
+                <th id="id_net_id" class="center" title="Net index" rowspan="3">n</th>
+                <th id="id_sum_header" class="center" title="Sum" colspan="6">Sum</th>
+                <th id="id_squared_sum_header" class="center" title="Squared Sum" colspan="6">Squared Sum</th>
+                <th id="id_delta_total" class="center" title="Total delta" rowspan="3">d</th>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div id="id_swap_current_info" class="span4">
+          <table class="table table-condensed table-bordered table-striped">
+            <tbody id="id_swap_tbody" style="font-size: 80%;">
+              <tr>
+                <th id="id_swap_i_header">i</th>
+                <th id="id_swap_master_header">m</th>
+                <th id="id_swap_from_header" colspan="2">Source</th>
+                <th id="id_swap_to_header" colspan="2">Target</th>
+                <th id="id_swap_delta_cost_header" title="Delta cost">d</th>
+                <th id="id_swap_accepted_header" title="Accepted">a</th>
+                <th id="id_swap_actions_header" title="Details">Details</th>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="span4">
+      <div class="row">
+        <div style="vertical-align: middle">
+          <h3 class="pull-left">Swap context: </h3>
+          <h1 id="id_swap_context_current" class="pull-right"></h1>
+        </div>
+        <div class="span4 visible" style="height: 150; overflow: auto;">
+          <table class="table table-condensed table-bordered table-striped">
+            <tbody id="swap_context_list" style="font-size: 80%;">
+              <tr>
+                <th id="id_swap_context_index_header" title="Swap context index">i</th>
+                <th id="id_swap_context_accepted_header" title="Accepted swaps count">+</th>
+                <th id="id_swap_context_skipped_header" title="Skipped swaps count">-</th>
+                <th id="id_swap_context_total_header" title="Evaluated swaps/total swaps">Total</th>
+                <th id="id_swap_context_actions_header" title="Perform actions on swap context">Actions</th>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="span4">
+      <div class="row">
+        <h3>Current block:</h3>
+        <div id="placement_info_current" class="span4 visible" ></div>
+      </div>
+    </div>
+    <div class="span4">
+      <div class="row">
+        <h3>Selected blocks:</h3>
+        <fieldset>
+            <button name="clear_selection" id="id_clear_selection">Clear selection</button>
+        </fieldset>
+        <div id="placement_info_selected" class="span4 visible" ></div>
+      </div>
+    </div>
+    <div id="placement_info_template" class="invisible" >
+    <!-- The contents of the tag are used as a template to format an info table
+        for a block -->
+        <table class="condensed-table table-bordered table-striped table-hover">
+            <tbody>
+            <tr><th>Coordinates</th><td class="block_coordinates">({{ x }}, {{ y }})</td></tr>
+            <tr><th>Block id</th><td class="block_id">{{ block_id }}</td></tr>
+            <tr><th>Net ids</th><td class="net_ids">{{ net_ids }}</td></tr>
+            </tbody>
+        </table>
+    </div>
+    <table class="invisible" >
+    <!-- The contents of the tag are used as a template to format an info table
+      for a block -->
+        <tbody><tr id="swap_template">
+          <th id="id_swap_row_swap_i_{{ swap_i }}" class="swap_row_swap_i" style="text-align: center">{{ swap_i }}</th>
+          <td id="id_swap_row_master_{{ swap_i }}" class="swap_row_master" style="text-align: center">{{ swap_config.master }}</td>
+          <td style="text-align: center">
+              {{ swap_config.ids.from_ }}
+          </td>
+          <td style="text-align: center">
+              {{ swap_config.coords.from_ }}
+          </td>
+          <td style="text-align: center">
+              {{ swap_config.ids.to }}
+          </td>
+          <td style="text-align: center">
+              {{ swap_config.coords.to }}
+          </td>
+          <td id="id_swap_row_delta_cost_{{ swap_i }}" class="swap_row_delta_cost" style="text-align: center">{{ swap_result.delta_cost }}</td>
+          <td id="id_swap_row_accepted_{{ swap_i }}" class="swap_row_accepted" style="text-align: center">{{ swap_result.swap_accepted }}</td>
+          <td id="id_swap_row_actions_{{ swap_i }}">
+            <button class="btn btn-mini" id="id_swap_show_delta_cost_{{ swap_i }}">select</button>
+          </td>
+        </tr></tbody>
+    </table>
+    <table class="invisible" >
+    <!-- The contents of the tag are used as a template to format an info table
+      for a block -->
+        <tbody><tr id="swap_context_template">
+          <th id="id_swap_context_row_index_{{ index }}" class="swap_context_row_index" style="text-align: center">{{ index }}</th>
+          <td id="id_swap_context_row_accepted_{{ index }}" class="swap_context_row_accepted" style="text-align: center">{{ accepted_count }}</td>
+          <td id="id_swap_context_row_skipped_{{ index }}" class="swap_context_row_skipped" style="text-align: center">{{ skipped_count }}</td>
+          <td id="id_swap_context_row_total_{{ index }}" class="swap_context_row_total" style="text-align: center">{{ participated_count }}/{{ total_count }}</td>
+          <td id="id_swap_context_row_actions_{{ index }}">
+            <a href="#" class="btn btn-mini" id="id_swap_context_select_{{ index }}">select</a>
+            <a href="#myModal_{{ index }}" role="button" class="btn btn-mini" data-toggle="modal">details</a>
+          </td>
+        </tr></tbody>
+    </table>
+
+    <div id="swap_context_detail_template" class="invisible" >
+      <div id="myModal_{{ index }}" data-backdrop="false" class="span4 modal hide" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <strong>Swap context {{ index }}</strong>
+      </div>
+      <div id="swap_context_{{ index }}" class="modal-body">
+        <table class="table-condensed table-bordered table-striped table-hover">
+          <tbody id="id_swap_context_tbody_{{ index }}"></tbody>
+        </table>
+      </div>
+      </div>
+    </div>
+
+    <div id="id_swap_delta_template" class="invisible" >
+        <table class="table table-condensed table-bordered table-striped" style="width: 400px">
+        <tbody class="{{ prefix }}_delta" style="font-size: 60%;">
+          <tr>
+            <th id="id_net_id_{{ prefix }}{{ swap_i }}" class="center" title="Net index" rowspan="3">n</th>
+            <th id="id_block_count_{{ prefix }}{{ swap_i }}" class="center" title="Number of blocks connected to net" rowspan="3">kl</th>
+            <th id="id_sum_header_{{ prefix }}{{ swap_i }}" class="center" title="Sum" colspan="6">Sum</th>
+            <th id="id_squared_sum_header_{{ prefix }}{{ swap_i }}" class="center" title="Squared Sum" colspan="6">Squared Sum</th>
+            <th id="id_delta_total_{{ prefix }}{{ swap_i }}" class="center" title="Total delta" rowspan="3">d</th>
+          </tr>
+          <tr>
+            <th id="id_sum_x_header_{{ prefix }}{{ swap_i }}" class="center" title="Sum x" colspan="3">x</th>
+            <th id="id_sum_y_header_{{ prefix }}{{ swap_i }}" class="center" title="Sum y" colspan="3">y</th>
+            <th id="id_squared_sum_x_header_{{ prefix }}{{ swap_i }}" class="center" title="Squared Sum x" colspan="3">x</th>
+            <th id="id_squared_sum_y_header_{{ prefix }}{{ swap_i }}" class="center" title="Squared Sum y" colspan="3">y</th>
+          </tr>
+          <tr>
+            <th id="id_old_sum_x_header_{{ prefix }}{{ swap_i }}" class="center" title="Old sum x">old</th>
+            <th id="id_new_sum_x_header_{{ prefix }}{{ swap_i }}" class="center" title="New sum x">new</th>
+            <th id="id_delta_sum_x_header_{{ prefix }}{{ swap_i }}" class="center" title="Delta sum x">d</th>
+            <th id="id_old_sum_y_header_{{ prefix }}{{ swap_i }}" class="center" title="Old sum y">old</th>
+            <th id="id_new_sum_y_header_{{ prefix }}{{ swap_i }}" class="center" title="New sum y">new</th>
+            <th id="id_delta_sum_y_header_{{ prefix }}{{ swap_i }}" class="center" title="Delta sum y">d</th>
+            <th id="id_old_squared_sum_x_header_{{ prefix }}{{ swap_i }}" class="center" title="Old squared sum x">old</th>
+            <th id="id_new_squared_sum_x_header_{{ prefix }}{{ swap_i }}" class="center" title="New squared sum x">new</th>
+            <th id="id_delta_squared_sum_x_header_{{ prefix }}{{ swap_i }}" class="center" title="Delta squared sum x">d</th>
+            <th id="id_old_squared_sum_y_header_{{ prefix }}{{ swap_i }}" class="center" title="Old squared sum y">old</th>
+            <th id="id_new_squared_sum_y_header_{{ prefix }}{{ swap_i }}" class="center" title="New squared sum y">new</th>
+            <th id="id_delta_squared_sum_y_header_{{ prefix }}{{ swap_i }}" class="center" title="Delta squared sum y">d</th>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<script type="text/coffeescript" src="/dist/lib/mixin.coffee"></script>
+<script type="text/coffeescript" src="/dist/echo_controller.coffee"></script>
+<script type="text/coffeescript">
+    @netlist_chooser = $('#id_netlist_chooser')
+    @architecture_chooser = $('#id_architecture_chooser')
+    @set_paths = (paths, dropdown) =>
+        dropdown.empty()
+        for p in paths
+            path_components = p.split('/')
+            name = path_components[path_components.length - 1]
+            $("<option />", val: p, text: name).appendTo(dropdown)
+
+    @reset = () =>
+        @bridge_uri = $('#id_nullmq_zmq_bridge option:selected').val()
+        @context = new nullmq.Context(@bridge_uri)
+        @echo_controller = new EchoJsonController(@context, 'tcp://localhost:55555')
+        @echo_controller.do_request(command: "available_netlists", (value) =>
+            @netlists = value.result
+            @echo_controller.do_request(command: "available_architectures",
+                (value) =>
+                    @architectures = value.result
+                    @set_paths(@netlists, @netlist_chooser)
+                    @set_paths(@architectures, @architecture_chooser)
+                    console.log(netlists: @netlists, architectures: @architectures)
+            )
+        )
+
+    @make_controller = () =>
+        @echo_controller.do_request(command: "available_netlists", (value) =>
+        )
+
+    $("#id_reset").click(() => @reset())
+
+    @reset()
+</script>
+</body>
+</html>
