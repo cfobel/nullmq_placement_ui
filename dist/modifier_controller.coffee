@@ -66,23 +66,14 @@ class Net
 
 
 class ModifierController extends EchoJsonController
-    constructor: (@placement_grid, @context, @action_uri, @swap_uri) ->
+    constructor: (@placement_grid, @context, @action_uri) ->
         @placement_i = -1
-        options =
-            nullmq_context: @context
-            action_uri: @action_uri
-            status_uri: @swap_uri
-        @placement_manager = new RemotePlacementManager(options)
 
         # TODO:
         #   -Migrate ModifierController code to use RemotePlacementManager
         #     rather than @swap_contexts list
         @swap_contexts = new Array()
         super @context, @action_uri
-        @swap_fe = @context.socket(nullmq.SUB)
-        @swap_fe.connect(@swap_uri)
-        @swap_fe.setsockopt(nullmq.SUBSCRIBE, "")
-        #@swap_fe.recvall(@process_swap)
         @initialized = false
         @placement_grid.block_mouseover = @block_mouseover
         @placement_grid.block_mouseout = @block_mouseout
@@ -111,7 +102,22 @@ class ModifierController extends EchoJsonController
         @_state = @_states.IDLE
 
         obj = @
-        $(obj).on("initialized", (e) -> obj.load_placement(true))
+
+        $(obj).on("initialized", (e) -> 
+            status_be_uri = e.response.result.status_be_uri
+            if status_be_uri[0..6] == "tcp://*"
+                status_be_uri = action_uri.split(":")[0..1].concat([status_be_uri[8..]]).join(":")
+            else
+                console.log("status_be_uri", status_be_uri)
+            options =
+                nullmq_context: obj.context
+                action_uri: obj.action_uri
+                status_uri: status_be_uri
+            obj.placement_manager = new RemotePlacementManager(options)
+
+            console.log("[ModifierController] initialized", status_be_uri)
+            obj.load_placement(true)
+        )
         $(obj).on("placement_loaded", (e) -> console.log("on: placement_loaded", e.placement_i, e.placement))
         $(obj).on("placement_manager_up_to_date", (e) -> console.log("on: placement_manager_up_to_date", e))
         $(obj).on("swap_context_focus_set", (e) =>
@@ -268,11 +274,13 @@ class ModifierController extends EchoJsonController
                 @swap_context_i = @placement_i
             index = @swap_context_i
         available = index of @placement_manager.swap_contexts
+        ###
         console.log("[swap_context_available]", available,
             index: index
             swap_context_i: @swap_context_i
             placement_i: @placement_i
         )
+        ###
         return available
 
     block_mouseover: (d, i, from_rect) =>
@@ -345,19 +353,24 @@ class ModifierController extends EchoJsonController
     initialize: (callback) ->
         obj = @
         if not @initialized
-            @do_request({"command": "initialize", args: ["tcp://*:9051", ], kwargs: {depth: 2}}, () ->
+            on_init_completed = (response) ->
                 obj.do_request({"command": "net_to_block_id_list"}, (value) ->
                     obj.net_to_block_ids = value.result
                     obj.do_request({"command": "block_to_net_ids"}, (value) ->
                         obj.block_to_net_ids = value.result
                         obj.do_request({"command": "block_net_counts"}, (value) ->
                             obj.block_net_counts = value.result
-                            $(obj).trigger(type: "initialized", controller: obj)
+                            $(obj).trigger(type: "initialized", controller: obj, response: response)
                             obj.initialized = true
                         )
                     )
                 )
-            )
+            try
+                @do_request({"command": "initialize", kwargs: {depth: 2}}, (response) ->
+                    on_init_completed(response)
+                )
+            catch e
+                console.log("initialize error", e)
 
     _iterate_count: 1
     _iterate_i: 0

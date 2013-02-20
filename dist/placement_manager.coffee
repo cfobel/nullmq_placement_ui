@@ -366,7 +366,7 @@ class RemotePlacementManager extends EchoJsonController
         @_outstanding_placement_requests += count
         stop_length = @placements.length + count
         do_iterations_id = $(obj).on("placement_added.do_iterations", () =>
-            #console.log("[do_iterations]:", @placements.length, stop_length, count, @_outstanding_placement_requests)
+            console.log("[do_iterations]:", @placements.length, stop_length, count, @_outstanding_placement_requests)
             if @placements.length >= stop_length
                 $(obj).off("placement_added.do_iterations")
                 if on_completed
@@ -376,7 +376,8 @@ class RemotePlacementManager extends EchoJsonController
 
     do_iteration: (increment=true)=>
         if @_iteration_in_progress
-            @_do_iteration_timeout = setTimeout((() => @do_iteration(false)), 50)
+            #@_do_iteration_timeout = setTimeout((() => @do_iteration(false)), 50)
+            @_do_iteration_timeout = setTimeout((() => @do_iteration(false)), 5000)
         else
             # Record the current number of placements so we can verify
             # later that the number of placements has increased.

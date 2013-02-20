@@ -41,7 +41,19 @@
   <div class="row">
     <p class="lead">Click the button below to load block positions from placement controller.</p>
     <fieldset>
+        <label>NullMQ-to-ZeroMQ bridge URI</label>
+        <select id="id_nullmq_zmq_bridge">
+          <option value="ws://localhost:9000" default>localhost:9000</option>
+          <option value="ws://maeby.fobel.net:9000">maeby.fobel.net:9000</option>
+        </select>
+        <label>Modifier action backend URI</label>
+        <select id="id_action_backend">
+          <option value="tcp://maeby.fobel.net:9003" default>maeby.fobel.net:9003</option>
+          <option value="tcp://maeby.fobel.net:11000">maeby.fobel.net:11000</option>
+          <option value="tcp://localhost:9003">localhost:9003</option>
+        </select>
         <button name="load_placement" id="id_load_placement">Load placement</button>
+        <button name="reset" id="id_reset">Reset</button>
     </fieldset>
   </div>
 </section>
@@ -232,24 +244,34 @@ th.center {
 <script type="text/coffeescript" src="/dist/modifier_controller.coffee"></script>
 <script type="text/coffeescript" src="/dist/grid.coffee"></script>
 <script type="text/coffeescript">
-    #@context = new nullmq.Context('ws://maeby.fobel.net:9000')
-    @context = new nullmq.Context('ws://localhost:9000')
     width = d3.select("#chart").style("width")
     if width.substr(width.length - 2, width.length) == "px"
         width = eval(width.substr(0, width.length - 2))
     @placement_grid = new PlacementGrid("chart", 0.75 * width)
 
-    @modifier_controller = new ModifierController(@placement_grid, @context,
-            'tcp://localhost:9003', 'tcp://localhost:9051')
     $("#id_clear_selection").click(() =>
         placement_grid.clear_selection()
     )
-    $(modifier_controller).on("initialized", (e) -> console.log("controller initialized"))
-    $(modifier_controller).on("placement_focus_set", (e) -> console.log(e.type, e.placement_i))
-    modifier_controller.initialize()
 
-    $("#id_load_placement").click(() ->
-        modifier_controller.load_placement(true)
+    $("#id_load_placement").click(() =>
+        @modifier_controller.load_placement(true)
+    )
+
+    $("#id_reset").click(() =>
+        bridge_uri = $('#id_nullmq_zmq_bridge option:selected').val()
+        action_backend_uri = $('#id_action_backend option:selected').val()
+        @context = new nullmq.Context(bridge_uri)
+        @modifier_controller = new ModifierController(@placement_grid,
+                @context, action_backend_uri)
+        obj = @
+        $(obj.modifier_controller).on("initialized", (e) ->
+            console.log("controller initialized")
+            #obj.modifier_controller.load_placement(true)
+        )
+        $(obj.modifier_controller).on("placement_focus_set", (e) ->
+            console.log("[placement_focus_set]", e.type, e.placement_i)
+        )
+        modifier_controller.initialize()
     )
 
     Mousetrap.bind('home', () -> modifier_controller.home())
@@ -274,6 +296,7 @@ th.center {
     $("#id_class_close").on('click', () ->
         $(".popover").popover('hide')
     )
+    
 </script>
 </body>
 </html>
