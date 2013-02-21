@@ -29,6 +29,10 @@
     border-color: #F0A5A4 !important;
     color: #BD4247 !important;
 }
+
+#id_controllers_tbody  {
+    font-size: 0.9em;
+}
 </style>
 </head>
 <body>
@@ -128,17 +132,34 @@
             @socks.sub.connect(@pub_uri)
             @socks.sub.setsockopt(nullmq.SUBSCRIBE, "")
             @socks.sub.recvall(@process_status_update)
+            @pending_requests = {}
+            @pending_iterations = {}
+            @outer_i = null
+            @inner_i = null
+
             obj = @
+
             $(obj).on("async_response", (e) =>
                 @process_async_response(e.response)
             )
             $(obj).on("iteration_completed", (e) =>
-                console.log("iteration_completed", e)
-                @row().find('td.iteration').html(e.outer_i + ", " + e.inner_i)
+                obj.outer_i = e.outer_i
+                obj.inner_i = e.inner_i
+                obj.update_iteration_count()
             )
 
-            @pending_requests = {}
-            @pending_iterations = {}
+        update_iteration_count: () =>
+            remaining = Object.keys(@pending_iterations).length
+            if remaining > 0
+                remaining_text = " (" + remaining + ")"
+            else
+                remaining_text = ""
+            @row().find('td.iteration').html(
+                if @outer_i? and @inner_i?
+                    @outer_i + ", " + @inner_i + remaining_text
+                else
+                    "initializing..." + remaining_text
+            )
 
         row: () => 
             $('#id_controllers_tbody > tr.controller_row[data-id="' + @config.process_id + '"]')
@@ -159,19 +180,19 @@
             obj = @
             message = @deserialize(message)
             if 'async_id' of message
-                if message.async_id of @pending_requests
-                    $(obj).trigger(type: "async_response", controller: obj, response: message)
-                    delete @pending_requests[message.async_id]
                 if message.async_id of @pending_iterations
                     delete @pending_iterations[message.async_id]
+                if message.async_id of @pending_requests
+                    delete @pending_requests[message.async_id]
+                    $(obj).trigger(type: "async_response", controller: obj, response: message)
 
         do_request: (message, on_recv) =>
             _on_recv = (message) =>
-                on_recv(message)
                 if 'async_id' of message
                     @pending_requests[message.async_id] = message
                     if 'command' of message and message.command == 'iter__next'
                         @pending_iterations[message.async_id] = message
+                on_recv(message)
             super message, _on_recv
 
 
@@ -186,13 +207,8 @@
 
 
     @controller_manager = new ControllerProxyManager()
-    $(this.controller_factory).on("controller", (e) => 
-        console.log("controller created", e)
-        controller = new ControllerProxy(@context, e.uris.rep, e.uris.pub, e)
-        @controller_manager.add(e.process_id, controller)
-    )
 
-    $("#id_foo").click(() =>
+    update_controller_table = () =>
         _.templateSettings =
           interpolate: /\{\{(.+?)\}\}/g
 
@@ -200,7 +216,6 @@
         template = _.template(template_text)
 
         controllers = @controller_manager.controller_list()
-        console.log(controllers)
         rows = d3.select('#id_controllers_tbody').selectAll('.controller_row')
           .data(controllers, (d) -> d.process_id)
         rows.exit().remove()
@@ -215,7 +230,6 @@
                     netlist_path_short: h_.split_last(d.controller.config.netlist_path, '/')
                     arch_path_short: h_.split_last(d.controller.config.arch_path, '/')
                 data = $().extend(d, data)
-                console.log("data", data)
                 template(data)
             )
             .each((d) ->
@@ -224,12 +238,19 @@
                     c.do_request({"command": "iter__next"}, (value) =>
                         c.do_request({"command": "iter__next"}, (value) =>
                             c.row().find('.action_iterate > button').click(() ->
-                                d.controller.do_request({"command": "iter__next"}, () -> null)
+                                c.do_request({"command": "iter__next"}, () ->
+                                    c.update_iteration_count()
+                                )
                             )
                         )
                     )
                 )
             )
+
+    $(this.controller_factory).on("controller", (e) => 
+        controller = new ControllerProxy(@context, e.uris.rep, e.uris.pub, e)
+        @controller_manager.add(e.process_id, controller)
+        update_controller_table()
     )
 
     $("#id_make_controller").click(() =>
