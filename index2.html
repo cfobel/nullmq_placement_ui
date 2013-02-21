@@ -50,7 +50,10 @@
         <select id="id_architecture_chooser"></select>
         <label>Select netlist:</label>
         <select id="id_netlist_chooser"></select>
+        <label>Select modifier type:</label>
+        <select id="id_modifier_chooser"></select>
         <!--<button name="load_placement" id="id_load_placement">Load placement</button>-->
+        <button name="make_controller" id="id_make_controller">Make controller</button>
         <button name="reset" id="id_reset">Reset</button>
     </fieldset>
   </div>
@@ -238,38 +241,33 @@ th.center {
 
 <script type="text/coffeescript" src="/dist/lib/mixin.coffee"></script>
 <script type="text/coffeescript" src="/dist/echo_controller.coffee"></script>
+<script type="text/coffeescript" src="/dist/controller_factory_proxy.coffee"></script>
+<script type="text/coffeescript" src="/dist/coffee_helpers.coffee"></script>
 <script type="text/coffeescript">
+
     @netlist_chooser = $('#id_netlist_chooser')
     @architecture_chooser = $('#id_architecture_chooser')
-    @set_paths = (paths, dropdown) =>
-        dropdown.empty()
-        for p in paths
-            path_components = p.split('/')
-            name = path_components[path_components.length - 1]
-            $("<option />", val: p, text: name).appendTo(dropdown)
+    @modifier_chooser = $('#id_modifier_chooser')
+    @bridge_uri = $('#id_nullmq_zmq_bridge option:selected').val()
+    @context = new nullmq.Context(@bridge_uri)
 
-    @reset = () =>
-        @bridge_uri = $('#id_nullmq_zmq_bridge option:selected').val()
-        @context = new nullmq.Context(@bridge_uri)
-        @echo_controller = new EchoJsonController(@context, 'tcp://localhost:55555')
-        @echo_controller.do_request(command: "available_netlists", (value) =>
-            @netlists = value.result
-            @echo_controller.do_request(command: "available_architectures",
-                (value) =>
-                    @architectures = value.result
-                    @set_paths(@netlists, @netlist_chooser)
-                    @set_paths(@architectures, @architecture_chooser)
-                    console.log(netlists: @netlists, architectures: @architectures)
-            )
-        )
+    @controller_factory = new ControllerFactoryProxy(@context, 'tcp://localhost:55555')
 
-    @make_controller = () =>
-        @echo_controller.do_request(command: "available_netlists", (value) =>
-        )
+    $(this.controller_factory).on("reset_completed", (e) => 
+        coffee_helpers.set_paths(@controller_factory.netlists, @netlist_chooser)
+        coffee_helpers.set_paths(@controller_factory.architectures, @architecture_chooser)
+        coffee_helpers.set_options(@controller_factory.modifier_names, @modifier_chooser)
+    )
 
-    $("#id_reset").click(() => @reset())
+    $("#id_make_controller").click(() =>
+        netlist = @netlist_chooser.val()
+        arch = @architecture_chooser.val()
+        modifier_class = @modifier_chooser.val()
+        @controller_factory.make_controller(netlist, arch)
+    )
+    $("#id_reset").click(() => @controller_factory.reset())
 
-    @reset()
+    @controller_factory.reset()
 </script>
 </body>
 </html>
