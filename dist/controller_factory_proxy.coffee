@@ -1,5 +1,6 @@
 class ControllerFactoryProxy extends EchoJsonController
     constructor: (@context, @action_uri) ->
+        @hostname = @action_uri.split(':')[1][2..]
         super @context, @action_uri
 
     reset: () =>
@@ -18,6 +19,7 @@ class ControllerFactoryProxy extends EchoJsonController
         )
 
     make_controller: (netlist, arch, modifier_class) =>
+        obj = @
         kwargs =
             modifier_class: modifier_class
             netlist_path: netlist
@@ -27,8 +29,11 @@ class ControllerFactoryProxy extends EchoJsonController
             if 'error' in value.result
                 console.log(error: value.result.error, response: value)
             else
-                console.log("made controller:", value.result.process_id,
-                            value.result.uris)
+                data = $().extend({type: "controller"}, kwargs)
+                data = $().extend(data, value.result)
+                data.uris.rep = data.uris.rep.replace('*', obj.hostname)
+                data.uris.pub = data.uris.pub.replace('*', obj.hostname)
+                $(obj).trigger(data)
         )
 
 @ControllerFactoryProxy = ControllerFactoryProxy

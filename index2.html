@@ -55,188 +55,48 @@
         <!--<button name="load_placement" id="id_load_placement">Load placement</button>-->
         <button name="make_controller" id="id_make_controller">Make controller</button>
         <button name="reset" id="id_reset">Reset</button>
+        <button name="foo" id="id_foo">Foo</button>
     </fieldset>
   </div>
 </section>
 
-<section id="placement">
-  <div class="row">
-    <div id="chart" class="span8 visible"></div>
-    <div class="span4">
-      <div class="row">
-        <div style="vertical-align: middle">
-          <h3 class="pull-left">Current swap: </h3>
-          <h1 id="id_swap_current_index" class="pull-right"></h1>
-        </div>
-        <style type="text/css" media="all">
-th.center {
-    text-align: center;
-}
-        </style>
-        <div class="invisible">
-          <table class="table table-condensed table-bordered table-striped">
-            <tbody class="from_delta_template" style="font-size: 60%;">
-              <tr>
-                <th id="id_net_id" class="center" title="Net index" rowspan="3">n</th>
-                <th id="id_sum_header" class="center" title="Sum" colspan="6">Sum</th>
-                <th id="id_squared_sum_header" class="center" title="Squared Sum" colspan="6">Squared Sum</th>
-                <th id="id_delta_total" class="center" title="Total delta" rowspan="3">d</th>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div id="id_swap_current_info" class="span4">
-          <table class="table table-condensed table-bordered table-striped">
-            <tbody id="id_swap_tbody" style="font-size: 80%;">
-              <tr>
-                <th id="id_swap_i_header">i</th>
-                <th id="id_swap_master_header">m</th>
-                <th id="id_swap_from_header" colspan="2">Source</th>
-                <th id="id_swap_to_header" colspan="2">Target</th>
-                <th id="id_swap_delta_cost_header" title="Delta cost">d</th>
-                <th id="id_swap_accepted_header" title="Accepted">a</th>
-                <th id="id_swap_actions_header" title="Details">Details</th>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-    <div class="span4">
-      <div class="row">
-        <div style="vertical-align: middle">
-          <h3 class="pull-left">Swap context: </h3>
-          <h1 id="id_swap_context_current" class="pull-right"></h1>
-        </div>
-        <div class="span4 visible" style="height: 150; overflow: auto;">
-          <table class="table table-condensed table-bordered table-striped">
-            <tbody id="swap_context_list" style="font-size: 80%;">
-              <tr>
-                <th id="id_swap_context_index_header" title="Swap context index">i</th>
-                <th id="id_swap_context_accepted_header" title="Accepted swaps count">+</th>
-                <th id="id_swap_context_skipped_header" title="Skipped swaps count">-</th>
-                <th id="id_swap_context_total_header" title="Evaluated swaps/total swaps">Total</th>
-                <th id="id_swap_context_actions_header" title="Perform actions on swap context">Actions</th>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-    <div class="span4">
-      <div class="row">
-        <h3>Current block:</h3>
-        <div id="placement_info_current" class="span4 visible" ></div>
-      </div>
-    </div>
-    <div class="span4">
-      <div class="row">
-        <h3>Selected blocks:</h3>
-        <fieldset>
-            <button name="clear_selection" id="id_clear_selection">Clear selection</button>
-        </fieldset>
-        <div id="placement_info_selected" class="span4 visible" ></div>
-      </div>
-    </div>
-    <div id="placement_info_template" class="invisible" >
-    <!-- The contents of the tag are used as a template to format an info table
-        for a block -->
-        <table class="condensed-table table-bordered table-striped table-hover">
-            <tbody>
-            <tr><th>Coordinates</th><td class="block_coordinates">({{ x }}, {{ y }})</td></tr>
-            <tr><th>Block id</th><td class="block_id">{{ block_id }}</td></tr>
-            <tr><th>Net ids</th><td class="net_ids">{{ net_ids }}</td></tr>
-            </tbody>
-        </table>
-    </div>
-    <table class="invisible" >
-    <!-- The contents of the tag are used as a template to format an info table
-      for a block -->
-        <tbody><tr id="swap_template">
-          <th id="id_swap_row_swap_i_{{ swap_i }}" class="swap_row_swap_i" style="text-align: center">{{ swap_i }}</th>
-          <td id="id_swap_row_master_{{ swap_i }}" class="swap_row_master" style="text-align: center">{{ swap_config.master }}</td>
-          <td style="text-align: center">
-              {{ swap_config.ids.from_ }}
-          </td>
-          <td style="text-align: center">
-              {{ swap_config.coords.from_ }}
-          </td>
-          <td style="text-align: center">
-              {{ swap_config.ids.to }}
-          </td>
-          <td style="text-align: center">
-              {{ swap_config.coords.to }}
-          </td>
-          <td id="id_swap_row_delta_cost_{{ swap_i }}" class="swap_row_delta_cost" style="text-align: center">{{ swap_result.delta_cost }}</td>
-          <td id="id_swap_row_accepted_{{ swap_i }}" class="swap_row_accepted" style="text-align: center">{{ swap_result.swap_accepted }}</td>
-          <td id="id_swap_row_actions_{{ swap_i }}">
-            <button class="btn btn-mini" id="id_swap_show_delta_cost_{{ swap_i }}">select</button>
-          </td>
-        </tr></tbody>
-    </table>
-    <table class="invisible" >
-    <!-- The contents of the tag are used as a template to format an info table
-      for a block -->
-        <tbody><tr id="swap_context_template">
-          <th id="id_swap_context_row_index_{{ index }}" class="swap_context_row_index" style="text-align: center">{{ index }}</th>
-          <td id="id_swap_context_row_accepted_{{ index }}" class="swap_context_row_accepted" style="text-align: center">{{ accepted_count }}</td>
-          <td id="id_swap_context_row_skipped_{{ index }}" class="swap_context_row_skipped" style="text-align: center">{{ skipped_count }}</td>
-          <td id="id_swap_context_row_total_{{ index }}" class="swap_context_row_total" style="text-align: center">{{ participated_count }}/{{ total_count }}</td>
-          <td id="id_swap_context_row_actions_{{ index }}">
-            <a href="#" class="btn btn-mini" id="id_swap_context_select_{{ index }}">select</a>
-            <a href="#myModal_{{ index }}" role="button" class="btn btn-mini" data-toggle="modal">details</a>
-          </td>
-        </tr></tbody>
-    </table>
-
-    <div id="swap_context_detail_template" class="invisible" >
-      <div id="myModal_{{ index }}" data-backdrop="false" class="span4 modal hide" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <strong>Swap context {{ index }}</strong>
-      </div>
-      <div id="swap_context_{{ index }}" class="modal-body">
-        <table class="table-condensed table-bordered table-striped table-hover">
-          <tbody id="id_swap_context_tbody_{{ index }}"></tbody>
-        </table>
-      </div>
-      </div>
-    </div>
-
-    <div id="id_swap_delta_template" class="invisible" >
-        <table class="table table-condensed table-bordered table-striped" style="width: 400px">
-        <tbody class="{{ prefix }}_delta" style="font-size: 60%;">
-          <tr>
-            <th id="id_net_id_{{ prefix }}{{ swap_i }}" class="center" title="Net index" rowspan="3">n</th>
-            <th id="id_block_count_{{ prefix }}{{ swap_i }}" class="center" title="Number of blocks connected to net" rowspan="3">kl</th>
-            <th id="id_sum_header_{{ prefix }}{{ swap_i }}" class="center" title="Sum" colspan="6">Sum</th>
-            <th id="id_squared_sum_header_{{ prefix }}{{ swap_i }}" class="center" title="Squared Sum" colspan="6">Squared Sum</th>
-            <th id="id_delta_total_{{ prefix }}{{ swap_i }}" class="center" title="Total delta" rowspan="3">d</th>
-          </tr>
-          <tr>
-            <th id="id_sum_x_header_{{ prefix }}{{ swap_i }}" class="center" title="Sum x" colspan="3">x</th>
-            <th id="id_sum_y_header_{{ prefix }}{{ swap_i }}" class="center" title="Sum y" colspan="3">y</th>
-            <th id="id_squared_sum_x_header_{{ prefix }}{{ swap_i }}" class="center" title="Squared Sum x" colspan="3">x</th>
-            <th id="id_squared_sum_y_header_{{ prefix }}{{ swap_i }}" class="center" title="Squared Sum y" colspan="3">y</th>
-          </tr>
-          <tr>
-            <th id="id_old_sum_x_header_{{ prefix }}{{ swap_i }}" class="center" title="Old sum x">old</th>
-            <th id="id_new_sum_x_header_{{ prefix }}{{ swap_i }}" class="center" title="New sum x">new</th>
-            <th id="id_delta_sum_x_header_{{ prefix }}{{ swap_i }}" class="center" title="Delta sum x">d</th>
-            <th id="id_old_sum_y_header_{{ prefix }}{{ swap_i }}" class="center" title="Old sum y">old</th>
-            <th id="id_new_sum_y_header_{{ prefix }}{{ swap_i }}" class="center" title="New sum y">new</th>
-            <th id="id_delta_sum_y_header_{{ prefix }}{{ swap_i }}" class="center" title="Delta sum y">d</th>
-            <th id="id_old_squared_sum_x_header_{{ prefix }}{{ swap_i }}" class="center" title="Old squared sum x">old</th>
-            <th id="id_new_squared_sum_x_header_{{ prefix }}{{ swap_i }}" class="center" title="New squared sum x">new</th>
-            <th id="id_delta_squared_sum_x_header_{{ prefix }}{{ swap_i }}" class="center" title="Delta squared sum x">d</th>
-            <th id="id_old_squared_sum_y_header_{{ prefix }}{{ swap_i }}" class="center" title="Old squared sum y">old</th>
-            <th id="id_new_squared_sum_y_header_{{ prefix }}{{ swap_i }}" class="center" title="New squared sum y">new</th>
-            <th id="id_delta_squared_sum_y_header_{{ prefix }}{{ swap_i }}" class="center" title="Delta squared sum y">d</th>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
+<section id="controllers">
+ <div class="row">
+  <table class="table">
+   <tbody id="id_controllers_tbody">
+    <tr>
+     <th id="id_controller_id_header">id</th>
+     <th id="id_modifier_class">modifier</th>
+     <th id="id_netlist_header">net</th>
+     <!--<th id="id_arch_header">arch</th>-->
+     <th id="id_iteration_header">iteration</th>
+     <th id="id_rep_uri_header">rep</th>
+     <th id="id_pub_uri_header">pub</th>
+     <th id="id_actions_header">actions</th>
+    </tr>
+   </tbody>
+ </table>
+ </div>
+</section>
+<section class="template">
+ <table class="invisible" >
+ <!-- The contents of the tag are used as a template to format an info table
+   for a block -->
+     <tbody><tr id="id_controller_row_template">
+       <th class="controller_id" title="{{ process_id }}">{{ process_id_short }}</th>
+       <td class="modifier_class">{{ controller.config.modifier_class }}</td>
+       <td class="netlist" title="{{ controller.config.netlist_path }}">{{ netlist_path_short }}</td>
+       <!--<td class="arch" title="{{ controller.config.arch_path }}">{{ arch_path_short }}</td>-->
+       <td class="iteration"></td>
+       <td class="rep_uri">{{ controller.rep_uri }}</td>
+       <td class="pub_uri">{{ controller.pub_uri }}</td>
+       <td class="actions">
+          <div class="action_iterate">
+            <button class="btn btn-mini">iterate</button>
+          </div>
+       </td>
+     </tr></tbody>
+ </table>
 </section>
 
 <script type="text/coffeescript" src="/dist/lib/mixin.coffee"></script>
@@ -259,11 +119,124 @@ th.center {
         coffee_helpers.set_options(@controller_factory.modifier_names, @modifier_chooser)
     )
 
+    class ControllerProxy extends EchoJsonController
+        constructor: (@context, @rep_uri, @pub_uri, @config) ->
+            super @context, @rep_uri
+            @socks =
+                rep: @echo_fe
+                sub: @context.socket(nullmq.SUB)
+            @socks.sub.connect(@pub_uri)
+            @socks.sub.setsockopt(nullmq.SUBSCRIBE, "")
+            @socks.sub.recvall(@process_status_update)
+            obj = @
+            $(obj).on("async_response", (e) =>
+                @process_async_response(e.response)
+            )
+            $(obj).on("iteration_completed", (e) =>
+                console.log("iteration_completed", e)
+                @row().find('td.iteration').html(e.outer_i + ", " + e.inner_i)
+            )
+
+            @pending_requests = {}
+            @pending_iterations = {}
+
+        row: () => 
+            $('#id_controllers_tbody > tr.controller_row[data-id="' + @config.process_id + '"]')
+
+        process_async_response: (message) =>
+            obj = @
+            if 'command' of message and message.command == 'iter__next'
+                data =
+                    type: "iteration_completed"
+                    response: message
+                    outer_i: message.outer_i
+                    inner_i: message.inner_i
+                    next_outer_i: message.result[0]
+                    next_inner_i: message.result[1]
+                $(obj).trigger(data)
+
+        process_status_update: (message) =>
+            obj = @
+            message = @deserialize(message)
+            if 'async_id' of message
+                if message.async_id of @pending_requests
+                    $(obj).trigger(type: "async_response", controller: obj, response: message)
+                    delete @pending_requests[message.async_id]
+                if message.async_id of @pending_iterations
+                    delete @pending_iterations[message.async_id]
+
+        do_request: (message, on_recv) =>
+            _on_recv = (message) =>
+                on_recv(message)
+                if 'async_id' of message
+                    @pending_requests[message.async_id] = message
+                    if 'command' of message and message.command == 'iter__next'
+                        @pending_iterations[message.async_id] = message
+            super message, _on_recv
+
+
+    class ControllerProxyManager
+        constructor: () ->
+            @controllers = {}
+
+        add: (process_id, controller) =>
+            @controllers[process_id] = controller
+
+        controller_list: () => (process_id: k, controller: v for k,v of @controllers)
+
+
+    @controller_manager = new ControllerProxyManager()
+    $(this.controller_factory).on("controller", (e) => 
+        console.log("controller created", e)
+        controller = new ControllerProxy(@context, e.uris.rep, e.uris.pub, e)
+        @controller_manager.add(e.process_id, controller)
+    )
+
+    $("#id_foo").click(() =>
+        _.templateSettings =
+          interpolate: /\{\{(.+?)\}\}/g
+
+        template_text = d3.select("#id_controller_row_template").html()
+        template = _.template(template_text)
+
+        controllers = @controller_manager.controller_list()
+        console.log(controllers)
+        rows = d3.select('#id_controllers_tbody').selectAll('.controller_row')
+          .data(controllers, (d) -> d.process_id)
+        rows.exit().remove()
+        rows.enter()
+          .append("tr")
+            .attr("class", "controller_row")
+            .attr("data-id", (d) -> d.process_id)
+            .html((d) ->
+                h_ = coffee_helpers
+                data =
+                    process_id_short: h_.split_last(d.process_id, ' ')[0..7]
+                    netlist_path_short: h_.split_last(d.controller.config.netlist_path, '/')
+                    arch_path_short: h_.split_last(d.controller.config.arch_path, '/')
+                data = $().extend(d, data)
+                console.log("data", data)
+                template(data)
+            )
+            .each((d) ->
+                c = d.controller
+                c.do_request({"command": "initialize", "kwargs": {"depth": 2}}, (value) =>
+                    c.do_request({"command": "iter__next"}, (value) =>
+                        c.do_request({"command": "iter__next"}, (value) =>
+                            c.row().find('.action_iterate > button').click(() ->
+                                d.controller.do_request({"command": "iter__next"}, () -> null)
+                            )
+                        )
+                    )
+                )
+            )
+    )
+
     $("#id_make_controller").click(() =>
         netlist = @netlist_chooser.val()
         arch = @architecture_chooser.val()
         modifier_class = @modifier_chooser.val()
-        @controller_factory.make_controller(netlist, arch)
+        @controller_factory.make_controller(netlist, arch, modifier_class)
     )
     $("#id_reset").click(() => @controller_factory.reset())
 

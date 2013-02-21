@@ -3,6 +3,7 @@ set_options = (values, dropdown) =>
     for v in values
         $("<option />", val: v, text: v).appendTo(dropdown)
 
+
 set_paths = (paths, dropdown) =>
     dropdown.empty()
     for p in paths
@@ -11,6 +12,14 @@ set_paths = (paths, dropdown) =>
         $("<option />", val: p, text: name).appendTo(dropdown)
 
 
+last = (data) -> data[data.length - 1]
+
+
+split_last = (data, delimiter) -> last(data.split(delimiter))
+
+
 @coffee_helpers = 
     set_options: set_options
     set_paths: set_paths
+    last: last
+    split_last: split_last
