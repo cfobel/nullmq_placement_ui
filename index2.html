@@ -66,7 +66,7 @@
 
 <section id="controllers">
  <div class="row">
-  <table class="table">
+  <table class="table table-striped">
    <tbody id="id_controllers_tbody">
     <tr>
      <th id="id_controller_id_header">id</th>
@@ -154,12 +154,15 @@
                 remaining_text = " (" + remaining + ")"
             else
                 remaining_text = ""
-            @row().find('td.iteration').html(
-                if @outer_i? and @inner_i?
-                    @outer_i + ", " + @inner_i + remaining_text
-                else
-                    "initializing..." + remaining_text
-            )
+            class_ = "iteration" + (if remaining then " alert alert-info" else "")
+            @row().find('td.iteration')
+                .attr("class", class_)
+                .html(
+                    if @outer_i? and @inner_i?
+                        @outer_i + ", " + @inner_i + remaining_text
+                    else
+                        "initializing..." + remaining_text
+                )
 
         row: () => 
             $('#id_controllers_tbody > tr.controller_row[data-id="' + @config.process_id + '"]')
