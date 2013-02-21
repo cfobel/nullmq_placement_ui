@@ -12,8 +12,18 @@ class ControllerFactoryProxy extends EchoJsonController
                     @architectures = value.result
                     obj.do_request(command: "available_modifier_names", (value) =>
                         @modifier_names = value.result
-                        console.log(netlists: @netlists, architectures: @architectures, modifier_names: @modifier_names)
-                        $(obj).trigger(type: "reset_completed", controller_factory: obj)
+                        obj.do_request(command: "running_processes", (value) =>
+                            for process_info in value.result
+                                data = $().extend({type: "controller"}, process_info)
+                                data.uris.rep = data.uris.rep.replace('*', obj.hostname)
+                                data.uris.pub = data.uris.pub.replace('*', obj.hostname)
+                                $(obj).trigger(data)
+                            event_data =
+                                type: "reset_completed"
+                                controller_factory: obj
+                                running_processes: value.result
+                            $(obj).trigger(event_data)
+                        )
                     )
             )
         )
