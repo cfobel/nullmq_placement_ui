@@ -69,6 +69,7 @@
   <table class="table table-striped">
    <tbody id="id_controllers_tbody">
     <tr>
+     <th id="id_select">&nbsp;</th>
      <th id="id_controller_id_header">id</th>
      <th id="id_modifier_class">modifier</th>
      <th id="id_netlist_header">net</th>
@@ -87,6 +88,7 @@
  <!-- The contents of the tag are used as a template to format an info table
    for a block -->
      <tbody><tr id="id_controller_row_template">
+       <th class="select" title="select"><input type="checkbox" data-id="{{ process_id }}"></th>
        <th class="controller_id" title="{{ process_id }}">{{ process_id_short }}</th>
        <td class="modifier_class">{{ controller.config.modifier_class }}</td>
        <td class="netlist" title="{{ controller.config.netlist_path }}">{{ netlist_path_short }}</td>
@@ -111,6 +113,7 @@
 <script type="text/coffeescript" src="/dist/controller_factory_proxy.coffee"></script>
 <script type="text/coffeescript" src="/dist/controller_proxy.coffee"></script>
 <script type="text/coffeescript" src="/dist/controller_proxy_manager.coffee"></script>
+<script type="text/coffeescript" src="/dist/placement_collector.coffee"></script>
 <script type="text/coffeescript" src="/dist/coffee_helpers.coffee"></script>
 <script type="text/coffeescript">
 
@@ -170,6 +173,17 @@
                     )
                 )
             )
+
+
+    @selected_process_ids = () =>
+        d.dataset.id for d in $("#id_controllers_tbody input[type='checkbox']:checked")
+
+    @selected_process_infos = () =>
+        {process_id: id, controller: @controller_manager.controllers[id]} for id in @selected_process_ids()
+
+    @apply_to_selected_placements = (on_recv) =>
+        p = new PlacementCollector(@selected_process_infos())
+        p.collect(on_recv)
 
     $(this.controller_factory).on("controller", (e) => 
         if not (e.process_id of @controller_manager.controllers)
