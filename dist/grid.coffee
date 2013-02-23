@@ -1,21 +1,21 @@
 class Block
-    constructor: (@controller, @grid, @id, @x=null, @y=null) ->
-    rect_id: () => "id_block_" + @id
-    rect: () => d3.select("#" + @rect_id())
+    constructor: (@grid_id, @id) ->
+    rect_id: () => "block_" + @id
+    rect: () => d3.select("#" + @grid_id + " ." + @rect_id())
     mouseover: () =>
         @rect().style("fill-opacity", 1.0)
         # Update current block info table
-        current_info = d3.select("#placement_info_current")
-                .selectAll(".placement_info")
-                .data([this], (d) -> d.id)
-        current_info.enter()
-                .append("div")
-                .attr("class", "placement_info")
-                .html((d) -> placement_grid.template(d))
-        current_info.exit().remove()
+        #current_info = d3.select("#placement_info_current")
+                #.selectAll(".placement_info")
+                #.data([this], (d) -> d.id)
+        #current_info.enter()
+                #.append("div")
+                #.attr("class", "placement_info")
+                #.html((d) -> placement_grid.template(d))
+        #current_info.exit().remove()
     mouseout: () =>
-        @rect().style("fill-opacity", d.fill_opacity)
-            .style("stroke-width", d.stroke_width)
+        @rect().style("fill-opacity", (d) -> d.fill_opacity)
+            .style("stroke-width", (d) -> d.stroke_width)
 
 
 class Curve
@@ -304,8 +304,16 @@ class SwapContext
 
 
 class PlacementGrid
-    constructor: (@id, @width) ->
+    constructor: (@id, @width=null) ->
         @zoom = d3.behavior.zoom()
+        @grid_container = d3.select("#" + @id)
+        if not @width?
+            @width = @grid_container.style("width")
+            result = /(\d+(\.\d+))px/.exec(@width)
+            if result
+                @width = +result[1]
+            console.log("PlacementGrid", "inferred width", @width)
+        @width /= 1.15
         @grid = d3.select("#" + @id)
                     .append("svg")
                         .attr("width", 1.1 * @width)
@@ -340,11 +348,11 @@ class PlacementGrid
         @io_fill_color = @colors(1)
         @clb_fill_color = @colors(9)
         @_selected_blocks = {}
-        _.templateSettings =
-          interpolate: /\{\{(.+?)\}\}/g
-        @template_text = d3.select("#placement_info_template").html()
-        @template = _.template(@template_text)
-        @selected_container = d3.select("#placement_info_selected")
+        #_.templateSettings =
+          #interpolate: /\{\{(.+?)\}\}/g
+        #@template_text = d3.select("#placement_info_template").html()
+        #@template = _.template(@template_text)
+        #@selected_container = d3.select("#placement_info_selected")
         @block_positions = null
         @swap_infos = new Array()
 
@@ -405,21 +413,21 @@ class PlacementGrid
 
     clear_selection: () ->
         @_selected_blocks = {}
-        @update_selected_block_info()
+        #@update_selected_block_info()
         # Skip cell formatting until we can verify that it is working as
         # expected.
         #@update_cell_formats()
 
     select_block: (d) ->
         @_selected_blocks[d.block_id] = null
-        @update_selected_block_info()
+        #@update_selected_block_info()
         # Skip cell formatting until we can verify that it is working as
         # expected.
         #@update_cell_formats()
 
     deselect_block: (d) ->
         delete @_selected_blocks[d.block_id]
-        @update_selected_block_info()
+        #@update_selected_block_info()
         # Skip cell formatting until we can verify that it is working as
         # expected.
         #@update_cell_formats()
@@ -427,16 +435,6 @@ class PlacementGrid
     selected_block_ids: () -> +v for v in Object.keys(@_selected_blocks)
 
     selected: (block_id) -> block_id of @_selected_blocks
-
-    update_selected_block_info: () ->
-        data = (@block_positions[block_id] for block_id in @selected_block_ids())
-        infos = @selected_container.selectAll(".placement_info")
-            .data(data, (d) -> d.block_id)
-        infos.enter()
-          .append("div")
-            .attr("class", "placement_info")
-        infos.exit().remove()
-        infos.html((d) -> placement_grid.template(d))
 
     set_raw_block_positions: (raw_block_positions) ->
         @set_block_positions(@translate_block_positions(raw_block_positions))
@@ -448,7 +446,7 @@ class PlacementGrid
         # expected.
         #@update_cell_formats()
         @update_cell_positions()
-        @update_selected_block_info()
+        #@update_selected_block_info()
 
     update_cell_data: () ->
         # Each tag of class `cell` is an SVG group tag.  Each such group
@@ -466,10 +464,9 @@ class PlacementGrid
             .append("svg:g")
                 .attr("class", "cell")
             .append("svg:rect")
-                .attr("class", "block")
+                .attr("class", (d) -> "block block_" + d.block_id)
                 .attr("width", @block_width())
                 .attr("height", @block_height())
-                .attr("id", (d) -> "id_block_" + d.block_id)
                 .on('click', (d) ->
                     # Toggle selected state of clicked block
                     if obj.selected(d.block_id)
@@ -478,10 +475,12 @@ class PlacementGrid
                         obj.select_block(d)
                 )
                 .on('mouseout', (d, i) =>
-                    @block_mouseout(d, i, d3.select("#id_block_" + i))
+                    b = new Block(@id, i)
+                    b.mouseout()
                 )
                 .on('mouseover', (d, i) =>
-                    @block_mouseover(d, i, d3.select("#id_block_" + i))
+                    b = new Block(@id, i)
+                    b.mouseover()
                 )
                 .style("stroke", '#555')
                 .style('fill-opacity', (d) -> d.fill_opacity)

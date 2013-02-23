@@ -30,20 +30,25 @@
     color: #BD4247 !important;
 }
 
+.actions div {
+    float: left;
+}
+
 #id_controllers_tbody  {
     font-size: 0.9em;
 }
 </style>
 </head>
 <body>
-<div class="container">
+<div class="container-fluid">
 
 <section id="placement_server_example">
   <div class="page-header">
     <h1>NullMQ placement server example</h1>
   </div>
-  <div class="row">
+  <div class="row-fluid">
     <p class="lead">Click the button below to load block positions from placement controller.</p>
+    <form class="form-inline">
     <fieldset>
         <label>NullMQ-to-ZeroMQ bridge URI</label>
         <select id="id_nullmq_zmq_bridge">
@@ -61,11 +66,12 @@
         <button name="reset" id="id_reset">Reset</button>
         <button name="foo" id="id_foo">Foo</button>
     </fieldset>
+    </form>
   </div>
 </section>
 
 <section id="controllers">
- <div class="row">
+ <div class="row-fluid">
   <table class="table table-striped">
    <tbody id="id_controllers_tbody">
     <tr>
@@ -82,6 +88,13 @@
    </tbody>
  </table>
  </div>
+</section>
+<section class="placements">
+ <div class="row-fluid">
+<div id="id_placement_a" class="span5"></div>
+<div class="span2"></div>
+<div id="id_placement_b" class="span5"></div>
+</div>
 </section>
 <section class="template">
  <table class="invisible" >
@@ -103,6 +116,12 @@
           <div class="action_kill">
             <button class="btn btn-mini btn-danger">kill</button>
           </div>
+          <div class="action_placement_a">
+            <button class="btn btn-mini btn-info">a</button>
+          </div>
+          <div class="action_placement_b">
+            <button class="btn btn-mini btn-success">b</button>
+          </div>
        </td>
      </tr></tbody>
  </table>
@@ -114,6 +133,7 @@
 <script type="text/coffeescript" src="/dist/controller_proxy.coffee"></script>
 <script type="text/coffeescript" src="/dist/controller_proxy_manager.coffee"></script>
 <script type="text/coffeescript" src="/dist/placement_collector.coffee"></script>
+<script type="text/coffeescript" src="/dist/grid.coffee"></script>
 <script type="text/coffeescript" src="/dist/coffee_helpers.coffee"></script>
 <script type="text/coffeescript">
 
@@ -125,6 +145,16 @@
 
     @controller_factory = new ControllerFactoryProxy(@context, 'tcp://localhost:44444')
     @controller_manager = new ControllerProxyManager()
+
+    grid_container = d3.select("#id_placement_a")
+    grid_container.html('')
+    grid_a = new PlacementGrid("id_placement_a")
+    grid_container.style("border", "solid #9e6ab8")
+
+    grid_container = d3.select("#id_placement_b")
+    grid_container.html('')
+    grid_b = new PlacementGrid("id_placement_b")
+    grid_container.style("border", "solid #7bb33d")
 
     update_controller_table = () =>
         _.templateSettings =
@@ -170,6 +200,18 @@
                         #console.log("process_terminated", value)
                         if not ('error' of value)
                             obj.controller_manager.remove(d.process_id)
+                    )
+                )
+                c.row().find('.action_placement_a > button').click(() ->
+                    p = new PlacementCollector([d])
+                    p.collect((placements) ->
+                        grid_a.set_raw_block_positions(placements[0].block_positions)
+                    )
+                )
+                c.row().find('.action_placement_b > button').click(() ->
+                    p = new PlacementCollector([d])
+                    p.collect((placements) ->
+                        grid_b.set_raw_block_positions(placements[0].block_positions)
                     )
                 )
             )
