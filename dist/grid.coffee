@@ -1,7 +1,7 @@
 class Block
-    constructor: (@grid_id, @id) ->
+    constructor: (@id) ->
     rect_id: () => "block_" + @id
-    rect: () => d3.select("#" + @grid_id + " ." + @rect_id())
+    rect: (grid) => d3.select("#" + grid.grid_container.attr("id") + " ." + @rect_id())
 
 
 class Curve
@@ -292,7 +292,10 @@ class SwapContext
 class PlacementGrid
     constructor: (@id, @width=null) ->
         @zoom = d3.behavior.zoom()
-        @grid_container = d3.select("#" + @id)
+        @grid_container = d3.select('#' + @id)
+        @header = d3.select('#' + @id)
+                  .append('div')
+                    .attr('class', 'grid_header')
         if not @width?
             @width = @grid_container.style("width")
             result = /(\d+(\.\d+))px/.exec(@width)
@@ -341,6 +344,10 @@ class PlacementGrid
         #@selected_container = d3.select("#placement_info_selected")
         @block_positions = null
         @swap_infos = new Array()
+
+    update_block_info: (block) =>
+        @header.datum(block)
+            .html((d) -> @block_info_template(d))
 
     set_zoom: (translate, scale, signal=true) =>
         @zoom.translate(translate)
@@ -465,15 +472,15 @@ class PlacementGrid
                 .attr("width", @block_width())
                 .attr("height", @block_height())
                 .on('click', (d, i) ->
-                    b = new Block(@id, i)
+                    b = new Block(i)
                     $(obj).trigger(type: 'block_click', grid: obj, block: b, block_id: i, d: d)
                 )
                 .on('mouseout', (d, i) =>
-                    b = new Block(@id, i)
+                    b = new Block(i)
                     $(obj).trigger(type: 'block_mouseout', grid: obj, block: b, block_id: i, d: d)
                 )
                 .on('mouseover', (d, i) =>
-                    b = new Block(@id, i)
+                    b = new Block(i)
                     $(obj).trigger(type: 'block_mouseover', grid: obj, block: b, block_id: i, d: d)
                 )
                 .style("stroke", '#555')

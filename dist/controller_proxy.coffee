@@ -13,8 +13,13 @@ class ControllerProxy extends EchoJsonController
         @pending_outer_i = {}
         @pending_inner_i = {}
         @pending_block_positions = {}
+        @pending_net_to_block_id_list = {}
+
         @outer_i = null
         @inner_i = null
+        @net_to_block_ids = null
+        @block_to_net_ids = null
+        @block_net_counts = null
         @_initialized = false
         @_initializing = false
 
@@ -149,11 +154,20 @@ class ControllerProxy extends EchoJsonController
                 on_recv = @pending_block_positions[message.async_id]
                 delete @pending_block_positions[message.async_id]
                 on_recv(message.result)
+            if message.async_id of @pending_net_to_block_id_list
+                on_recv = @pending_net_to_block_id_list[message.async_id]
+                delete @pending_net_to_block_id_list[message.async_id]
+                on_recv(message.result)
             if message.async_id of @pending_requests
                 delete @pending_requests[message.async_id]
                 $(obj).trigger(type: "async_response", controller: obj, response: message)
             if message.async_id of @pending_outer_i
                 delete @pending_outer_i[message.async_id]
+
+    get_net_to_block_id_list: (on_recv) =>
+        @do_request({"command": "net_to_block_id_list"}, (async_response) =>
+            @pending_net_to_block_id_list[async_response.async_id] = on_recv
+        )
 
     get_block_positions: (on_recv) =>
         @do_request({"command": "get_block_positions"}, (async_response) =>

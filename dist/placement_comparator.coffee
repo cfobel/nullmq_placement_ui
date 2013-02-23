@@ -10,9 +10,19 @@ class PlacementComparator
 
         obj = @
 
-        $(obj.grid_a).on("block_mouseover", @block_emphasize)
-        $(obj.grid_a).on("block_mouseout", @block_deemphasize)
-        $(obj.grid_a).on("block_click", @block_toggle_select)
+        for grid in [@grid_a, @grid_b]
+            $(grid).on("block_mouseover", (e) =>
+                @block_emphasize(@grid_a, e.block)
+                @block_emphasize(@grid_b, e.block)
+            )
+            $(grid).on("block_mouseout", (e) =>
+                @block_deemphasize(@grid_a, e.block)
+                @block_deemphasize(@grid_b, e.block)
+            )
+            $(grid).on("block_click", (e) =>
+                @block_toggle_select(@grid_a, e)
+                @block_toggle_select(@grid_b, e)
+            ) 
         $(obj.grid_a).on("zoom_updated", (e) ->
             # When zoom is updated on grid a, update grid b to match.
             # N.B. We must set `signal=false`, since otherwise we would end up
@@ -20,9 +30,6 @@ class PlacementComparator
             obj.grid_b.set_zoom(e.translate, e.scale, false)
         )
 
-        $(obj.grid_b).on("block_mouseover", @block_emphasize)
-        $(obj.grid_b).on("block_mouseout", @block_deemphasize)
-        $(obj.grid_b).on("block_click", @block_toggle_select)
         $(obj.grid_b).on("zoom_updated", (e) ->
             # When zoom is updated on grid b, update grid a to match.
             # N.B. We must set `signal=false`, since otherwise we would end up
@@ -30,18 +37,18 @@ class PlacementComparator
             obj.grid_a.set_zoom(e.translate, e.scale, false)
         )
 
-    block_emphasize: (e) -> e.block.rect().style("fill-opacity", 1.0)
+    block_emphasize: (grid, block) -> block.rect(grid).style("fill-opacity", 1.0)
 
-    block_deemphasize: (e) ->
-        e.block.rect().style("fill-opacity", (d) -> d.fill_opacity)
+    block_deemphasize: (grid, block) ->
+        block.rect(grid).style("fill-opacity", (d) -> d.fill_opacity)
             .style("stroke-width", (d) -> d.stroke_width)
 
-    block_toggle_select: (e) ->
+    block_toggle_select: (grid, e) ->
         # Toggle selected state of clicked block
-        if e.grid.selected(e.block_id)
-            e.grid.deselect_block(e.d)
+        if grid.selected(e.block_id)
+            grid.deselect_block(e.d)
         else
-            e.grid.select_block(e.d)
+            grid.select_block(e.d)
 
 
 @PlacementComparator = PlacementComparator

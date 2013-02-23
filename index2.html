@@ -142,12 +142,15 @@
     @architecture_chooser = $('#id_architecture_chooser')
     @modifier_chooser = $('#id_modifier_chooser')
     @bridge_uri = $('#id_nullmq_zmq_bridge option:selected').val()
-    @context = new nullmq.Context(@bridge_uri)
+    @zmq_context = new nullmq.Context(@bridge_uri)
 
-    @controller_factory = new ControllerFactoryProxy(@context, 'tcp://localhost:44444')
+    @controller_factory = new ControllerFactoryProxy(@zmq_context, 'tcp://localhost:44444')
     @controller_manager = new ControllerProxyManager()
 
     placement_comparator = new PlacementComparator(d3.select("#id_placement_a"), d3.select("#id_placement_b"))
+
+    class PlaceContext
+        constructor: (@net_to_block_id_list, @block_to_net_ids, @block_net_counts) ->
 
     update_controller_table = () =>
         _.templateSettings =
@@ -197,14 +200,14 @@
                 )
                 c.row().find('.action_placement_a > button').click(() ->
                     p = new PlacementCollector([d])
-                    p.collect((placements) ->
-                        placement_comparator.grid_a.set_raw_block_positions(placements[0].block_positions)
+                    p.collect('get_block_positions', (placements) ->
+                        placement_comparator.grid_a.set_raw_block_positions(placements[0].result)
                     )
                 )
                 c.row().find('.action_placement_b > button').click(() ->
                     p = new PlacementCollector([d])
-                    p.collect((placements) ->
-                        placement_comparator.grid_b.set_raw_block_positions(placements[0].block_positions)
+                    p.collect('get_block_positions', (placements) ->
+                        placement_comparator.grid_b.set_raw_block_positions(placements[0].result)
                     )
                 )
             )
@@ -218,11 +221,11 @@
 
     @apply_to_selected_placements = (on_recv) =>
         p = new PlacementCollector(@selected_process_infos())
-        p.collect(on_recv)
+        p.collect('get_block_positions', on_recv)
 
     $(this.controller_factory).on("controller", (e) => 
         if not (e.process_id of @controller_manager.controllers)
-            controller = new ControllerProxy(@context, e.uris.rep, e.uris.pub, e)
+            controller = new ControllerProxy(@zmq_context, e.uris.rep, e.uris.pub, e)
             @controller_manager.add(e.process_id, controller)
         else
             console.log("on controller", "ignoring existing controller:", e.process_id)
