@@ -2,20 +2,6 @@ class Block
     constructor: (@grid_id, @id) ->
     rect_id: () => "block_" + @id
     rect: () => d3.select("#" + @grid_id + " ." + @rect_id())
-    mouseover: () =>
-        @rect().style("fill-opacity", 1.0)
-        # Update current block info table
-        #current_info = d3.select("#placement_info_current")
-                #.selectAll(".placement_info")
-                #.data([this], (d) -> d.id)
-        #current_info.enter()
-                #.append("div")
-                #.attr("class", "placement_info")
-                #.html((d) -> placement_grid.template(d))
-        #current_info.exit().remove()
-    mouseout: () =>
-        @rect().style("fill-opacity", (d) -> d.fill_opacity)
-            .style("stroke-width", (d) -> d.stroke_width)
 
 
 class Curve
@@ -467,20 +453,17 @@ class PlacementGrid
                 .attr("class", (d) -> "block block_" + d.block_id)
                 .attr("width", @block_width())
                 .attr("height", @block_height())
-                .on('click', (d) ->
-                    # Toggle selected state of clicked block
-                    if obj.selected(d.block_id)
-                        obj.deselect_block(d)
-                    else
-                        obj.select_block(d)
+                .on('click', (d, i) ->
+                    b = new Block(@id, i)
+                    $(obj).trigger(type: 'block_click', grid: obj, block: b, block_id: i, d: d)
                 )
                 .on('mouseout', (d, i) =>
                     b = new Block(@id, i)
-                    b.mouseout()
+                    $(obj).trigger(type: 'block_mouseout', grid: obj, block: b, block_id: i, d: d)
                 )
                 .on('mouseover', (d, i) =>
                     b = new Block(@id, i)
-                    b.mouseover()
+                    $(obj).trigger(type: 'block_mouseover', grid: obj, block: b, block_id: i, d: d)
                 )
                 .style("stroke", '#555')
                 .style('fill-opacity', (d) -> d.fill_opacity)

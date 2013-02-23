@@ -133,6 +133,7 @@
 <script type="text/coffeescript" src="/dist/controller_proxy.coffee"></script>
 <script type="text/coffeescript" src="/dist/controller_proxy_manager.coffee"></script>
 <script type="text/coffeescript" src="/dist/placement_collector.coffee"></script>
+<script type="text/coffeescript" src="/dist/placement_comparator.coffee"></script>
 <script type="text/coffeescript" src="/dist/grid.coffee"></script>
 <script type="text/coffeescript" src="/dist/coffee_helpers.coffee"></script>
 <script type="text/coffeescript">
@@ -146,15 +147,7 @@
     @controller_factory = new ControllerFactoryProxy(@context, 'tcp://localhost:44444')
     @controller_manager = new ControllerProxyManager()
 
-    grid_container = d3.select("#id_placement_a")
-    grid_container.html('')
-    grid_a = new PlacementGrid("id_placement_a")
-    grid_container.style("border", "solid #9e6ab8")
-
-    grid_container = d3.select("#id_placement_b")
-    grid_container.html('')
-    grid_b = new PlacementGrid("id_placement_b")
-    grid_container.style("border", "solid #7bb33d")
+    placement_comparator = new PlacementComparator(d3.select("#id_placement_a"), d3.select("#id_placement_b"))
 
     update_controller_table = () =>
         _.templateSettings =
@@ -205,13 +198,13 @@
                 c.row().find('.action_placement_a > button').click(() ->
                     p = new PlacementCollector([d])
                     p.collect((placements) ->
-                        grid_a.set_raw_block_positions(placements[0].block_positions)
+                        placement_comparator.grid_a.set_raw_block_positions(placements[0].block_positions)
                     )
                 )
                 c.row().find('.action_placement_b > button').click(() ->
                     p = new PlacementCollector([d])
                     p.collect((placements) ->
-                        grid_b.set_raw_block_positions(placements[0].block_positions)
+                        placement_comparator.grid_b.set_raw_block_positions(placements[0].block_positions)
                     )
                 )
             )
