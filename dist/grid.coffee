@@ -306,7 +306,7 @@ class PlacementGrid
                         .attr("height", 1.1 * @width)
                     .append('svg:g')
                         .attr("id", @id + "_transform_group")
-                        .call(@zoom.on("zoom", () => @update_zoom(d3.event.translate, d3.event.scale)))
+                        .call(@zoom.on("zoom", () => @update_zoom()))
                     .append('svg:g')
                         .attr("class", "chart")
         zoom = window.location.hash
@@ -342,10 +342,21 @@ class PlacementGrid
         @block_positions = null
         @swap_infos = new Array()
 
-    update_zoom: (translate, scale) =>
-        transform_str = "translate(" + @zoom.translate() + ")" + " scale(" +
-            @zoom.scale() + ")"
+    set_zoom: (translate, scale, signal=true) =>
+        @zoom.translate(translate)
+        @zoom.scale(scale)
+        @update_zoom(signal)
+
+    update_zoom: (signal=true) =>
+        @_update_zoom(@zoom.translate(), @zoom.scale(), signal)
+
+    _update_zoom: (translate, scale, signal=true) =>
+        transform_str = "translate(" + translate + ")" + " scale(" + scale + ")"
         @grid.attr("transform", transform_str)
+        if signal
+            obj = @
+            $(obj).trigger(type: "zoom_updated", translate: translate, scale: scale)
+
     set_zoom_location: () =>
         transform_str = "translate(" + @zoom.translate() + ")" + " scale(" +
             @zoom.scale() + ")"
