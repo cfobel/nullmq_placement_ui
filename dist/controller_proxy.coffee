@@ -46,6 +46,8 @@ class ControllerProxy extends EchoJsonController
                 @config.netlist_path = config.netlist_file
             if config.arch_file?
                 @config.arch_path = config.arch_file
+            if config.placer_opts?
+                @config.placer_opts = config.placer_opts
             if not @outer_i?
                 # Outer iteration index is not set, so force initialization
                 @sync_iteration_indexes(@update_iteration_count)

@@ -60,10 +60,11 @@
         <select id="id_netlist_chooser"></select>
         <label>Select modifier type:</label>
         <select id="id_modifier_chooser"></select>
+        <label>Seed:</label>
+        <input id="id_seed" type="text" maxlength="4" style="width: 40px;" value="1">
         <!--<button name="load_placement" id="id_load_placement">Load placement</button>-->
         <button name="make_controller" id="id_make_controller">Make controller</button>
         <button name="reset" id="id_reset">Reset</button>
-        <button name="foo" id="id_foo">Foo</button>
     </fieldset>
     </div>
   </div>
@@ -77,6 +78,7 @@
      <th id="id_select">&nbsp;</th>
      <th id="id_controller_id_header">id</th>
      <th id="id_modifier_class">modifier</th>
+     <th id="id_seed">seed</th>
      <th id="id_netlist_header">net</th>
      <!--<th id="id_arch_header">arch</th>-->
      <th id="id_iteration_header">iteration</th>
@@ -103,6 +105,7 @@
        <th class="select" title="select"><input type="checkbox" data-id="{{ process_id }}"></th>
        <th class="controller_id" title="{{ process_id }}">{{ process_id_short }}</th>
        <td class="modifier_class">{{ controller.config.modifier_class }}</td>
+       <td class="seed">{{ controller.config.placer_opts.seed }}</td>
        <td class="netlist" title="{{ controller.config.netlist_path }}">{{ netlist_path_short }}</td>
        <!--<td class="arch" title="{{ controller.config.arch_path }}">{{ arch_path_short }}</td>-->
        <td class="iteration"></td>
@@ -141,10 +144,11 @@
     @netlist_chooser = $('#id_netlist_chooser')
     @architecture_chooser = $('#id_architecture_chooser')
     @modifier_chooser = $('#id_modifier_chooser')
+    @seed_input = $('#id_seed')
     @bridge_uri = $('#id_nullmq_zmq_bridge option:selected').val()
     @zmq_context = new nullmq.Context(@bridge_uri)
 
-    @controller_factory = new ControllerFactoryProxy(@zmq_context, 'tcp://localhost:44444')
+    @controller_factory = new ControllerFactoryProxy(@zmq_context, 'tcp://localhost:33333')
     @controller_manager = new ControllerProxyManager()
 
     placement_comparator = new PlacementComparator(d3.select("#id_placement_a"), d3.select("#id_placement_b"))
@@ -242,7 +246,9 @@
         netlist = @netlist_chooser.val()
         arch = @architecture_chooser.val()
         modifier_class = @modifier_chooser.val()
-        @controller_factory.make_controller(netlist, arch, modifier_class)
+        modifier_class = @modifier_chooser.val()
+        seed = +@seed_input.val()
+        @controller_factory.make_controller(netlist, arch, modifier_class, seed)
         e.preventDefault()
     )
 

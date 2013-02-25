@@ -28,12 +28,13 @@ class ControllerFactoryProxy extends EchoJsonController
             )
         )
 
-    make_controller: (netlist, arch, modifier_class) =>
+    make_controller: (netlist, arch, modifier_class, seed=null) =>
         obj = @
         kwargs =
             modifier_class: modifier_class
             netlist_path: netlist
             arch_path: arch
+            seed: seed
             auto_run: true
         this.do_request({command: "make_controller", kwargs: kwargs}, (value) =>
             if 'error' in value.result
