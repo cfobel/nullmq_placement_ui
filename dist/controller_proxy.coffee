@@ -21,59 +21,79 @@ class ControllerProxy extends EchoJsonController
         @block_to_net_ids = null
         @block_net_counts = null
         @_initialized = false
-        @_initializing = false
 
         obj = @
 
-        $(obj).on("async_response", (e) =>
-            @process_async_response(e.response)
-        )
         $(obj).on("iteration_completed", (e) =>
             obj.set_iteration_indexes(e.outer_i, e.inner_i)
             obj.update_iteration_count()
         )
-        $(obj).on("iteration_update", (e) =>
-            #console.log("iteration_update", e, e.response.outer_i, e.response.inner_i)
-            obj.set_iteration_indexes(e.response.outer_i, e.response.inner_i)
+        $(obj).on("iteration_pending", (e) =>
             obj.update_iteration_count()
         )
         $(obj).on("config_updated", (e) =>
-            if 'netlist_file' of e.config
-                @config.netlist_path = e.config.netlist_file
-            if 'arch_file' of e.config
-                @config.arch_path = e.config.arch_file
             obj.update_config()
         )
+        @get_config()
+        @initialize()
 
-        @do_request({"command": "config_dict"}, (value) =>
-            # This will force initialization, if necessary
-            @sync_iteration_indexes()
-        )
+    get_config: (on_response=null) =>
+        obj = @
+        _on_response = (response) =>
+            response.command = 'config_dict'
+            config = response.result
+            if config.netlist_file?
+                @config.netlist_path = config.netlist_file
+            if config.arch_file?
+                @config.arch_path = config.arch_file
+            if not @outer_i?
+                # Outer iteration index is not set, so force initialization
+                @sync_iteration_indexes(@update_iteration_count)
+            if on_response?
+                on_response(response)
+            data =
+                type: "config_updated"
+                response: response
+                config: response.result
+            $(obj).trigger(data)
+        @do_request({"command": "config_dict"}, (() ->), _on_response)
 
     set_iteration_indexes: (outer_i, inner_i) =>
-        if outer_i != null and not @_initialized
-            console.log("initialized", @config.process_id)
-            @_initialized = true
         @outer_i = outer_i
         @inner_i = inner_i
 
-    sync_iteration_indexes: () =>
-        obj = @
-        obj.do_request({"command": "iter__outer_i"}, (value) =>
-            obj.do_request({"command": "iter__inner_i"}, (value) =>)
+    sync_iteration_indexes: (on_completed=null) =>
+        @get_outer_i((response) =>
+            #console.log("sync_iteration_indexes", "get_outer_i", response)
+            @outer_i = response
+            @get_inner_i((response) =>
+                #console.log("sync_iteration_indexes", "get_inner_i", response)
+                @inner_i = response
+                if on_completed?
+                    on_completed({outer_i: @outer_i, inner_i: @inner_i})
+            )
         )
+
+    get_inner_i: (on_response=null) =>
+        @do_command({"command": "iter__inner_i"}, on_response)
+
+    get_outer_i: (on_response=null) =>
+        @do_command({"command": "iter__outer_i"}, on_response)
 
     initialize: (force=false) =>
         obj = @
-        if force or not @_initialized and not @_initializing
-            @_initializing = true
-            #console.log("initialize")
-            obj.do_request({"command": "initialize", "kwargs": {"depth": 2}}, (value) =>
-                obj.do_request({"command": "iter__next"}, (value) =>
-                    obj.do_request({"command": "iter__next"}, (value) =>
-                        @_initializing = false
+        if not @_initialized
+            @sync_iteration_indexes(() =>
+                if @outer_i?
+                    @_initialized = true
+                else
+                    obj.do_command({"command": "initialize", "kwargs": {"depth": 2}}, (value) =>
+                        obj.do_iteration((value) =>
+                            obj.do_iteration((value) =>
+                                @_initialized = true
+                            )
+                        )
                     )
-                )
             )
 
     update_config: () =>
@@ -100,93 +120,62 @@ class ControllerProxy extends EchoJsonController
     row: () => 
         $('#id_controllers_tbody > tr.controller_row[data-id="' + @config.process_id + '"]')
 
-    process_async_response: (message) =>
-        obj = @
-        ###
-        if not ('command' of message) or message.command != 'swap_info'
-            console.log("process_async_response", message)
-        ###
-        if 'command' of message and message.command == 'iter__next'
-            data =
-                type: "iteration_completed"
-                response: message
-                outer_i: message.outer_i
-                inner_i: message.inner_i
-                next_outer_i: message.result[0]
-                next_inner_i: message.result[1]
-            $(obj).trigger(data)
-        if 'command' of message and message.command in ['iter__outer_i', 'iter__inner_i']
-            #console.log("process_async_response->outer/inner_i", message, ('error' of message))
-            if ('error' of message) or message.outer_i == null
-                @initialize()
-            else
-                data =
-                    type: "iteration_update"
-                    response: message
-                    outer_i: message.outer_i
-                    inner_i: message.inner_i
-                $(obj).trigger(data)
-        else if 'command' of message and message.command == 'config_dict'
-            data =
-                type: "config_updated"
-                response: message
-                config: message.result
-            $(obj).trigger(data)
-
     process_status_update: (message) =>
         obj = @
         message = @deserialize(message)
         if 'async_id' of message
-            if message.async_id of @pending_config
-                delete @pending_config[message.async_id]
-                # Manually override `command` field, since
-                # `process_async_response` depends on it
-                message.command = 'config_dict'
-            if message.async_id of @pending_outer_i
-                delete @pending_outer_i[message.async_id]
-                message.command = 'iter__outer_i'
-            if message.async_id of @pending_inner_i
-                delete @pending_inner_i[message.async_id]
-                message.command = 'iter__inner_i'
-            if message.async_id of @pending_iterations
-                delete @pending_iterations[message.async_id]
-            if message.async_id of @pending_block_positions
-                on_recv = @pending_block_positions[message.async_id]
-                delete @pending_block_positions[message.async_id]
-                on_recv(message.result)
-            if message.async_id of @pending_net_to_block_id_list
-                on_recv = @pending_net_to_block_id_list[message.async_id]
-                delete @pending_net_to_block_id_list[message.async_id]
-                on_recv(message.result)
-            if message.async_id of @pending_requests
-                delete @pending_requests[message.async_id]
+            if @pending_requests[message.async_id]?
+                @pending_requests[message.async_id](message)
                 $(obj).trigger(type: "async_response", controller: obj, response: message)
-            if message.async_id of @pending_outer_i
-                delete @pending_outer_i[message.async_id]
 
-    get_net_to_block_id_list: (on_recv) =>
-        @do_request({"command": "net_to_block_id_list"}, (async_response) =>
-            @pending_net_to_block_id_list[async_response.async_id] = on_recv
+    do_command: (command_config, on_response) =>
+        _on_response = (controller, async_response) =>
+           on_response(async_response.result)
+        obj = @
+        @do_request(command_config, (() ->), (response) ->
+            _on_response(obj, response)
         )
 
-    get_block_positions: (on_recv) =>
-        @do_request({"command": "get_block_positions"}, (async_response) =>
-            @pending_block_positions[async_response.async_id] = on_recv
-        )
+    get_block_to_net_ids: (on_response) =>
+        @do_command({"command": "block_to_net_ids"}, on_response)
 
-    do_request: (message, on_recv) =>
-        _on_recv = (message) =>
+    get_block_net_counts: (on_response) =>
+        @do_command({"command": "block_net_counts"}, on_response)
+
+    get_net_to_block_id_list: (on_response) =>
+        @do_command({"command": "net_to_block_id_list"}, on_response)
+
+    get_block_positions: (on_response) =>
+        @do_command({"command": "get_block_positions"}, on_response)
+
+    do_iteration: (on_response=null) =>
+        obj = @
+        _on_ack = (ack_response) =>
+            # Add iteration command key for counting the number of
+            # outstanding iterations to be done.
+            @pending_iterations[ack_response.async_id] = null
+            $(obj).trigger(type: "iteration_pending")
+        _on_response = (async_response) =>
+            if async_response.async_id of @pending_iterations
+                delete @pending_iterations[async_response.async_id]
+            if on_response?
+                on_response(async_response)
+            data =
+                type: "iteration_completed"
+                response: async_response
+                outer_i: async_response.outer_i
+                inner_i: async_response.inner_i
+                next_outer_i: async_response.result[0]
+                next_inner_i: async_response.result[1]
+            $(obj).trigger(data)
+        @do_request({"command": "iter__next"}, _on_ack, _on_response)
+
+    do_request: (message, on_ack, on_response=null) =>
+        _on_ack = (message) =>
             if 'async_id' of message
-                @pending_requests[message.async_id] = message
-                if 'command' of message and message.command == 'iter__next'
-                    @pending_iterations[message.async_id] = message
-                if 'command' of message and message.command == 'config_dict'
-                    @pending_config[message.async_id] = message
-                if message.command? and message.command == 'outer_i'
-                    @pending_outer_i[message.async_id] = message
-                if message.command? and message.command == 'inner_i'
-                    @pending_inner_i[message.async_id] = message
-            on_recv(message)
-        super message, _on_recv
+                @pending_requests[message.async_id] = on_response
+            on_ack(message)
+
+        super message, _on_ack
 
 @ControllerProxy = ControllerProxy

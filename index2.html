@@ -1,8 +1,7 @@
 <!DOCTYPE html PUBLIC "-/>
 <html lang="en">
 <head>
-<title>NullMQ placement server example</title>
-<link href="/dist/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+<title>NullMQ placement server example</title> <link href="/dist/bootstrap/css/bootstrap.min.css" rel="stylesheet">
 <link href="/dist/bootstrap/css/bootstrap-responsive.css" rel="stylesheet">
 <link href="/dist/lib/jquery-ui.css" rel="stylesheet">
 <script type="text/javascript" src="/dist/lib/jquery-latest.js"></script>
@@ -48,7 +47,7 @@
   </div>
   <div class="row-fluid">
     <p class="lead">Click the button below to load block positions from placement controller.</p>
-    <form class="form-inline">
+    <div class="form-inline">
     <fieldset>
         <label>NullMQ-to-ZeroMQ bridge URI</label>
         <select id="id_nullmq_zmq_bridge">
@@ -66,7 +65,7 @@
         <button name="reset" id="id_reset">Reset</button>
         <button name="foo" id="id_foo">Foo</button>
     </fieldset>
-    </form>
+    </div>
   </div>
 </section>
 
@@ -127,6 +126,7 @@
  </table>
 </section>
 
+<!--<script type="text/javascript" src="/dist/test.js"></script>-->
 <script type="text/coffeescript" src="/dist/lib/mixin.coffee"></script>
 <script type="text/coffeescript" src="/dist/echo_controller.coffee"></script>
 <script type="text/coffeescript" src="/dist/controller_factory_proxy.coffee"></script>
@@ -183,17 +183,10 @@
             .each((d) ->
                 c = d.controller
                 c.row().find('.action_iterate > button').click(() ->
-                    c.do_request({"command": "iter__next"}, () ->
-                        c.update_iteration_count()
-                    )
+                    c.do_iteration()
                 )
                 c.row().find('.action_kill > button').click(() ->
-                    terminate_data =
-                        command: 'terminate_process'
-                        kwargs:
-                            process_id: d.process_id
-                    obj.controller_factory.do_request(terminate_data, (value) =>
-                        #console.log("process_terminated", value)
+                    obj.controller_factory.terminate(d.process_id, (value) =>
                         if not ('error' of value)
                             obj.controller_manager.remove(d.process_id)
                     )
@@ -216,8 +209,14 @@
     @selected_process_ids = () =>
         d.dataset.id for d in $("#id_controllers_tbody input[type='checkbox']:checked")
 
+    @all_process_ids = () =>
+        d.dataset.id for d in $("#id_controllers_tbody input[type='checkbox']")
+
     @selected_process_infos = () =>
         {process_id: id, controller: @controller_manager.controllers[id]} for id in @selected_process_ids()
+
+    @all_process_infos = () =>
+        {process_id: id, controller: @controller_manager.controllers[id]} for id in @all_process_ids()
 
     @apply_to_selected_placements = (on_recv) =>
         p = new PlacementCollector(@selected_process_infos())
@@ -239,11 +238,12 @@
         update_controller_table()
     )
 
-    $("#id_make_controller").click(() =>
+    $("#id_make_controller").click((e) =>
         netlist = @netlist_chooser.val()
         arch = @architecture_chooser.val()
         modifier_class = @modifier_chooser.val()
         @controller_factory.make_controller(netlist, arch, modifier_class)
+        e.preventDefault()
     )
 
     $(this.controller_factory).on("reset_completed", (e) => 
