@@ -46,4 +46,11 @@ class ControllerFactoryProxy extends EchoJsonController
                 $(obj).trigger(data)
         )
 
+    terminate: (process_id, on_terminated=null) =>
+        terminate_data =
+            command: 'terminate_process'
+            kwargs:
+                process_id: process_id
+        @do_request(terminate_data, on_terminated ? (() ->))
+
 @ControllerFactoryProxy = ControllerFactoryProxy
