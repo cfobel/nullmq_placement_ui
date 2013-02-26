@@ -7,6 +7,24 @@ class PlacementComparator
         @grid_b_container_id = @grid_b_container.attr("id")
         @opposite_grids = {}
 
+    compare: () =>
+        if not @grid_a? or not @grid_b?
+            # We must have two grids to do a comparison
+            console.log('[warning] We must have two grids to do a comparison')
+            return {}
+        else if not @grid_a.block_positions.length == @grid_b.block_positions.length
+            console.log('[warning] The grids must have same number of blocks.')
+            return {}
+        same = {}
+        different = {}
+        for data,i in _.zip(@grid_a.block_positions, @grid_b.block_positions)
+            [a, b] = ([v.x, v.y, v.z] for v in data)
+            if _.difference(a, b).length > 0
+                different[i] = {a: a, b: b}
+            else
+                same[i] = a
+        return same: same, different: different
+
     reset_grid_a: (place_context) =>
         @grid_a_container.html('')
         @place_context_a = place_context
