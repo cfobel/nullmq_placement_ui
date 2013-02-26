@@ -303,7 +303,7 @@ class PlacementGrid
             width = jq_obj.width()
             height = $(window).height() - jq_obj.position().top - 130
             @width = Math.min(width, height)
-            console.log("PlacementGrid", "inferred width", @width)
+            #console.log("PlacementGrid", "inferred width", @width)
         @width /= 1.15
         @grid = d3.select("#" + @id)
                     .append("svg")

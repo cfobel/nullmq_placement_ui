@@ -20,6 +20,7 @@ class ControllerProxy extends EchoJsonController
         @net_to_block_ids = null
         @block_to_net_ids = null
         @block_net_counts = null
+        @place_context = null
         @_initialized = false
 
         obj = @
@@ -40,6 +41,7 @@ class ControllerProxy extends EchoJsonController
     get_config: (on_response=null) =>
         obj = @
         _on_response = (response) =>
+            #console.log("get_config", response)
             response.command = 'config_dict'
             config = response.result
             if config.netlist_file?
@@ -82,26 +84,37 @@ class ControllerProxy extends EchoJsonController
     get_outer_i: (on_response=null) =>
         @do_command({"command": "iter__outer_i"}, on_response)
 
-    initialize: (force=false) =>
+    initialize: () =>
         obj = @
         if not @_initialized
-            @sync_iteration_indexes(() =>
-                if @outer_i?
-                    @_initialized = true
-                else
-                    obj.do_command({"command": "initialize", "kwargs": {"depth": 2}}, (value) =>
-                        obj.do_iteration((value) =>
-                            obj.do_iteration((value) =>
+            obj.get_block_net_counts((result) =>
+                obj.block_net_counts = result
+                obj.get_net_to_block_id_list((result) =>
+                    obj.net_to_block_ids = result
+                    obj.get_block_to_net_ids((result) =>
+                        obj.block_to_net_ids = result
+                        obj.place_context = new PlaceContext(obj.net_to_block_ids, obj.block_to_net_ids, obj.block_net_counts)
+                        @sync_iteration_indexes(() =>
+                            if @outer_i?
                                 @_initialized = true
-                            )
+                            else
+                                obj.do_command({"command": "initialize", "kwargs": {"depth": 2}}, (value) =>
+                                    obj.do_iteration((value) =>
+                                        obj.do_iteration((value) =>
+                                            @_initialized = true
+                                        )
+                                    )
+                                )
                         )
                     )
+                )
             )
 
     update_config: () =>
         @row().find('td.netlist')
             .html(coffee_helpers.split_last(@config.netlist_path, '/'))
             .attr("title", @config.netlist_path)
+        @row().find('td.seed').html(@config.placer_opts.seed)
 
     update_iteration_count: () =>
         remaining = Object.keys(@pending_iterations).length
@@ -134,7 +147,7 @@ class ControllerProxy extends EchoJsonController
         _on_response = (controller, async_response) =>
            on_response(async_response.result)
         obj = @
-        @do_request(command_config, (() ->), (response) ->
+        @do_request(command_config, (() ->), (response) =>
             _on_response(obj, response)
         )
 

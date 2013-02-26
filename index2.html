@@ -101,7 +101,7 @@
        <th class="select" title="select"><input type="checkbox" data-id="{{ process_id }}"></th>
        <th class="controller_id" title="{{ process_id }}">{{ process_id_short }}</th>
        <td class="modifier_class">{{ controller.config.modifier_class }}</td>
-       <td class="seed">{{ controller.config.placer_opts.seed }}</td>
+       <td class="seed">{{ seed }}</td>
        <td class="netlist" title="{{ controller.config.netlist_path }}">{{ netlist_path_short }}</td>
        <!--<td class="arch" title="{{ controller.config.arch_path }}">{{ arch_path_short }}</td>-->
        <td class="iteration"></td>
@@ -128,6 +128,7 @@
 <!--<script type="text/javascript" src="/dist/test.js"></script>-->
 <script type="text/coffeescript" src="/dist/lib/mixin.coffee"></script>
 <script type="text/coffeescript" src="/dist/echo_controller.coffee"></script>
+<script type="text/coffeescript" src="/dist/place_context.coffee"></script>
 <script type="text/coffeescript" src="/dist/controller_factory_proxy.coffee"></script>
 <script type="text/coffeescript" src="/dist/controller_proxy.coffee"></script>
 <script type="text/coffeescript" src="/dist/controller_proxy_manager.coffee"></script>
@@ -148,9 +149,6 @@
     @controller_manager = new ControllerProxyManager()
 
     @placement_comparator = new PlacementComparator(d3.select("#id_placement_a"), d3.select("#id_placement_b"))
-
-    class PlaceContext
-        constructor: (@net_to_block_id_list, @block_to_net_ids, @block_net_counts) ->
 
     update_controller_table = () =>
         _.templateSettings =
@@ -177,6 +175,7 @@
                     process_id_short: h_.split_last(d.process_id, ' ')[0..7]
                     netlist_path_short: h_.split_last(netlist_path, '/')
                     arch_path_short: h_.split_last(arch_path, '/')
+                    seed: if d.controller.config.placer_opts? then d.controller.config.placer_opts.seed else '-'
                 data = $().extend(d, data)
                 template(data)
             )
