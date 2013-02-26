@@ -210,7 +210,8 @@
                 )
                 c.row().find('.action_placement_a > button').click(() ->
                     c.get_block_positions((block_positions) ->
-                        if not obj.controller_manager.last_a_config ? null == c.config
+                        previous_config = obj.controller_manager.last_a_config ? {}
+                        if c.config.netlist_path != (previous_config.netlist_path ? null)
                             placement_comparator.reset_grid_a(c.place_context)
                         placement_comparator.grid_a.set_raw_block_positions(block_positions)
                         obj.controller_manager.last_a_config = c.config
@@ -218,7 +219,8 @@
                 )
                 c.row().find('.action_placement_b > button').click(() ->
                     c.get_block_positions((block_positions) ->
-                        if not obj.controller_manager.last_b_config ? null == c.config
+                        previous_config = obj.controller_manager.last_b_config ? {}
+                        if c.config.netlist_path != (previous_config.netlist_path ? null)
                             placement_comparator.reset_grid_b(c.place_context)
                         placement_comparator.grid_b.set_raw_block_positions(block_positions)
                         obj.controller_manager.last_b_config = c.config
