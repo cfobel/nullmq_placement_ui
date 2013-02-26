@@ -41,12 +41,8 @@
 <body>
 <div class="container-fluid">
 
-<section id="placement_server_example">
-  <div class="page-header">
-    <h1>NullMQ placement server example</h1>
-  </div>
+<section class="settings">
   <div class="row-fluid">
-    <p class="lead">Click the button below to load block positions from placement controller.</p>
     <div class="form-inline">
     <fieldset>
         <label>NullMQ-to-ZeroMQ bridge URI</label>
@@ -70,7 +66,7 @@
   </div>
 </section>
 
-<section id="controllers">
+<section class="controllers">
  <div class="row-fluid">
   <table class="table table-striped">
    <tbody id="id_controllers_tbody">
@@ -151,7 +147,7 @@
     @controller_factory = new ControllerFactoryProxy(@zmq_context, 'tcp://localhost:33333')
     @controller_manager = new ControllerProxyManager()
 
-    placement_comparator = new PlacementComparator(d3.select("#id_placement_a"), d3.select("#id_placement_b"))
+    @placement_comparator = new PlacementComparator(d3.select("#id_placement_a"), d3.select("#id_placement_b"))
 
     class PlaceContext
         constructor: (@net_to_block_id_list, @block_to_net_ids, @block_net_counts) ->

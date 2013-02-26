@@ -297,10 +297,12 @@ class PlacementGrid
                   .append('div')
                     .attr('class', 'grid_header')
         if not @width?
-            @width = @grid_container.style("width")
-            result = /(\d+(\.\d+))px/.exec(@width)
-            if result
-                @width = +result[1]
+            obj = @
+            jq_obj = $(obj.grid_container[0])
+            # Restrict height to fit within viewport
+            width = jq_obj.width()
+            height = $(window).height() - jq_obj.position().top - 130
+            @width = Math.min(width, height)
             console.log("PlacementGrid", "inferred width", @width)
         @width /= 1.15
         @grid = d3.select("#" + @id)
