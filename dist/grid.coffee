@@ -317,12 +317,9 @@ class PlacementGrid
         result = /#translate\((-?\d+\.\d+),(-?\d+\.\d+)\)\s+scale\((-?\d+\.\d+)\)/.exec(zoom)
         if result and result.length == 4
             [translate_x, translate_y, scale] = result[1..]
-            console.log(result)
             @zoom.scale(scale)
             @zoom.translate([translate_x, translate_y])
             @update_zoom()
-        else
-            console.log(zoom)
         @scale =
             x: d3.scale.linear()
             y: d3.scale.linear()

@@ -10,20 +10,35 @@ class PlacementComparator
     compare: () =>
         if not @grid_a? or not @grid_b?
             # We must have two grids to do a comparison
-            console.log('[warning] We must have two grids to do a comparison')
-            return {}
-        else if not @grid_a.block_positions.length == @grid_b.block_positions.length
-            console.log('[warning] The grids must have same number of blocks.')
-            return {}
+            throw '[warning] We must have two grids to do a comparison'
+        else if @grid_a.block_positions.length != @grid_b.block_positions.length
+            throw '[warning] The grids must have same number of blocks.'
         same = {}
         different = {}
         for data,i in _.zip(@grid_a.block_positions, @grid_b.block_positions)
             [a, b] = ([v.x, v.y, v.z] for v in data)
-            if _.difference(a, b).length > 0
+            if not coffee_helpers.json_compare(a, b)
                 different[i] = {a: a, b: b}
             else
                 same[i] = a
         return same: same, different: different
+
+    _get_block_rects: (grid, block_ids) =>
+        return ((new Block(block_id).rect(grid)[0][0]) for block_id in block_ids)
+
+    select_blocks_by_id: (block_ids, grid=null) =>
+        _update = (orig, g) =>
+            orig.concat(@_get_block_rects(g, block_ids))
+
+        block_rects = []
+        if grid?
+            block_rects = _update(block_rects, grid)
+        else
+            if @grid_a?
+                block_rects = _update(block_rects, @grid_a)
+            if @grid_b?
+                block_rects = _update(block_rects, @grid_b)
+        d3.selectAll(block_rects)
 
     reset_grid_a: (place_context) =>
         @grid_a_container.html('')
@@ -41,18 +56,32 @@ class PlacementComparator
         if @grid_a?
             @grid_a.set_zoom([0, 0], 1, false)
 
+    set_block_positions: (grid, block_positions) ->
+        grid.set_raw_block_positions(block_positions)
+
+    set_block_positions_grid_a: (block_positions) =>
+        @set_block_positions(@grid_a, block_positions)
+        @highlight_comparison()
+
+    set_block_positions_grid_b: (block_positions) =>
+        @set_block_positions(@grid_b, block_positions)
+        @highlight_comparison()
+
     _connect_grid_signals: (grid) =>
         $(grid).on("block_mouseover", (e) =>
-            @block_emphasize(@grid_a, e.block)
-            @block_emphasize(@grid_b, e.block)
+            @select_blocks_by_id([e.block.id]).style("fill-opacity", 1.0)
+            @grid_a.update_header(e.block)
+            @grid_b.update_header(e.block)
         )
         $(grid).on("block_mouseout", (e) =>
-            @block_deemphasize(@grid_a, e.block)
-            @block_deemphasize(@grid_b, e.block)
+            @select_blocks_by_id([e.block.id])
+                .style("fill-opacity", (d) -> d.fill_opacity)
+                .style("stroke-width", (d) -> d.stroke_width)
         )
         $(grid).on("block_click", (e) =>
             @block_toggle_select(@grid_a, e)
             @block_toggle_select(@grid_b, e)
+            @highlight_selected()
         )
         $(grid).on("zoom_updated", (e) =>
             # When zoom is updated on grid a, update grid b to match.
@@ -83,6 +112,20 @@ class PlacementComparator
             grid.deselect_block(e.d)
         else
             grid.select_block(e.d)
+
+    # UI update
+    highlight_comparison: () =>
+        try
+            c = @compare()
+            @select_blocks_by_id(Object.keys(c.different)).style("fill", "red")
+            @select_blocks_by_id(Object.keys(c.same)).style("fill", "limegreen")
+        catch e
+            (->)
+
+    highlight_selected: () =>
+        selected = @grid_a.selected_block_ids()
+        if selected.length > 0
+            @select_blocks_by_id(selected).style("fill", "orange")
 
 
 @PlacementComparator = PlacementComparator

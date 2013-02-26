@@ -213,7 +213,7 @@
                         previous_config = obj.controller_manager.last_a_config ? {}
                         if c.config.netlist_path != (previous_config.netlist_path ? null)
                             placement_comparator.reset_grid_a(c.place_context)
-                        placement_comparator.grid_a.set_raw_block_positions(block_positions)
+                        placement_comparator.set_block_positions_grid_a(block_positions)
                         obj.controller_manager.last_a_config = c.config
                     )
                 )
@@ -222,7 +222,7 @@
                         previous_config = obj.controller_manager.last_b_config ? {}
                         if c.config.netlist_path != (previous_config.netlist_path ? null)
                             placement_comparator.reset_grid_b(c.place_context)
-                        placement_comparator.grid_b.set_raw_block_positions(block_positions)
+                        placement_comparator.set_block_positions_grid_b(block_positions)
                         obj.controller_manager.last_b_config = c.config
                     )
                 )
