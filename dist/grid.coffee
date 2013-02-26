@@ -293,8 +293,7 @@ class PlacementGrid
     constructor: (@id, @width=null) ->
         @zoom = d3.behavior.zoom()
         @grid_container = d3.select('#' + @id)
-        @header = d3.select('#' + @id)
-                  .append('div')
+        @header = @grid_container.append('div')
                     .attr('class', 'grid_header')
         if not @width?
             obj = @
@@ -339,17 +338,29 @@ class PlacementGrid
         @io_fill_color = @colors(1)
         @clb_fill_color = @colors(9)
         @_selected_blocks = {}
-        #_.templateSettings =
-          #interpolate: /\{\{(.+?)\}\}/g
-        #@template_text = d3.select("#placement_info_template").html()
-        #@template = _.template(@template_text)
-        #@selected_container = d3.select("#placement_info_selected")
+        _.templateSettings =
+          interpolate: /\{\{(.+?)\}\}/g
+        @grid_header_template_text = d3.select('.grid_header_template').html()
+        @grid_header_template = _.template(@grid_header_template_text)
         @block_positions = null
         @swap_infos = new Array()
 
-    update_block_info: (block) =>
+        $(obj).on('block_mouseover', (e) => @update_header(e.block))
+
+    update_header: (block) =>
+        obj = @
         @header.datum(block)
-            .html((d) -> @block_info_template(d))
+            .html((d) ->
+                try
+                    template_context =
+                        block: d
+                        position: obj.block_positions[d.id]
+                    obj.grid_header_template(template_context)
+                catch e
+                    @_last_obj =
+                        data: obj
+                        block: d
+            )
 
     set_zoom: (translate, scale, signal=true) =>
         @zoom.translate(translate)

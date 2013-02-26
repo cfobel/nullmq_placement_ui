@@ -80,7 +80,7 @@ class PlacementController extends EchoJsonController
 
     select_block_elements_by_ids: (block_ids) =>
         if block_ids.length > 0
-            block_element_ids = ("#id_block_" + i for i in block_ids)
+            block_element_ids = (".block_" + i for i in block_ids)
             return @placement_grid.grid.selectAll(block_element_ids.join(","))
         else
             # Empty selection

@@ -123,6 +123,24 @@
        </td>
      </tr></tbody>
  </table>
+ <div class="invisible" >
+ <!-- The contents of the tag are used as a template to format an info table
+   for a block -->
+    <div class="grid_header_template">
+        <table>
+            <tbody>
+            <tr>
+                <td>
+                    {{ block.id }}
+                </td>
+                <td>
+                    ({{ position.x }}, {{ position.y }})
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+ </div>
 </section>
 
 <!--<script type="text/javascript" src="/dist/test.js"></script>-->

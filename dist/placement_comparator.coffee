@@ -37,13 +37,15 @@ class PlacementComparator
             obj.grid_a.set_zoom(e.translate, e.scale, false)
         )
 
-    block_emphasize: (grid, block) -> block.rect(grid).style("fill-opacity", 1.0)
+    block_emphasize: (grid, block) =>
+        block.rect(grid).style("fill-opacity", 1.0)
+        grid.update_header(block)
 
-    block_deemphasize: (grid, block) ->
+    block_deemphasize: (grid, block) =>
         block.rect(grid).style("fill-opacity", (d) -> d.fill_opacity)
             .style("stroke-width", (d) -> d.stroke_width)
 
-    block_toggle_select: (grid, e) ->
+    block_toggle_select: (grid, e) =>
         # Toggle selected state of clicked block
         if grid.selected(e.block_id)
             grid.deselect_block(e.d)
