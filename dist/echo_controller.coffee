@@ -17,6 +17,7 @@ class EchoController
             _on_recv = (value) ->
                 value = obj.deserialize(value)
                 on_recv(value)
+                sock.close()
             sock.recv(_on_recv)
         catch error
             alert(error)

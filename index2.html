@@ -209,15 +209,19 @@
                     )
                 )
                 c.row().find('.action_placement_a > button').click(() ->
-                    p = new PlacementCollector([d])
-                    p.collect('get_block_positions', (placements) ->
-                        placement_comparator.grid_a.set_raw_block_positions(placements[0].result)
+                    c.get_block_positions((block_positions) ->
+                        if not obj.controller_manager.last_a_config ? null == c.config
+                            placement_comparator.reset_grid_a(c.place_context)
+                        placement_comparator.grid_a.set_raw_block_positions(block_positions)
+                        obj.controller_manager.last_a_config = c.config
                     )
                 )
                 c.row().find('.action_placement_b > button').click(() ->
-                    p = new PlacementCollector([d])
-                    p.collect('get_block_positions', (placements) ->
-                        placement_comparator.grid_b.set_raw_block_positions(placements[0].result)
+                    c.get_block_positions((block_positions) ->
+                        if not obj.controller_manager.last_b_config ? null == c.config
+                            placement_comparator.reset_grid_b(c.place_context)
+                        placement_comparator.grid_b.set_raw_block_positions(block_positions)
+                        obj.controller_manager.last_b_config = c.config
                     )
                 )
             )
