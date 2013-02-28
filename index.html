@@ -47,11 +47,12 @@
           <option value="ws://maeby.fobel.net:9000">maeby.fobel.net:9000</option>
         </select>
         <label>Modifier action backend URI</label>
-        <select id="id_action_backend">
-          <option value="tcp://maeby.fobel.net:9003" default>maeby.fobel.net:9003</option>
-          <option value="tcp://maeby.fobel.net:11000">maeby.fobel.net:11000</option>
-          <option value="tcp://localhost:9003">localhost:9003</option>
-        </select>
+        <input type="TEXT" id="id_action_backend" value="tcp://maeby.fobel.net:9003">
+        <!--<select id="id_action_backend">-->
+          <!--<option value="tcp://maeby.fobel.net:9003" default>maeby.fobel.net:9003</option>-->
+          <!--<option value="tcp://maeby.fobel.net:11000">maeby.fobel.net:11000</option>-->
+          <!--<option value="tcp://localhost:9003">localhost:9003</option>-->
+        <!--</select>-->
         <button name="load_placement" id="id_load_placement">Load placement</button>
         <button name="reset" id="id_reset">Reset</button>
     </fieldset>
@@ -259,7 +260,8 @@ th.center {
 
     $("#id_reset").click(() =>
         bridge_uri = $('#id_nullmq_zmq_bridge option:selected').val()
-        action_backend_uri = $('#id_action_backend option:selected').val()
+        #action_backend_uri = $('#id_action_backend option:selected').val()
+        action_backend_uri = $('#id_action_backend').val()
         @context = new nullmq.Context(bridge_uri)
         @modifier_controller = new ModifierController(@placement_grid,
                 @context, action_backend_uri)

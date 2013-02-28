@@ -862,7 +862,7 @@ class ModifierController extends EchoJsonController
             if not ("result" of response) or ("error" of response) and
                     response.error != null
                 error = new Error(response.error)
-                @_last_error = error
+                @_last_error = [error, response]
                 throw error
             on_recv(response)
         super message, _on_recv
