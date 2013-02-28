@@ -6,6 +6,18 @@ class ControllerTableView
         @template_text = d3.select("#id_controller_row_template").html()
         @template = _.template(@template_text)
 
+        @reset_grid =
+            a: @placement_comparator.reset_grid_a
+            b: @placement_comparator.reset_grid_b
+
+        @last_config =
+            a: {}
+            b: {}
+
+        @set_block_positions_grid =
+            a: @placement_comparator.set_block_positions_grid_a
+            b: @placement_comparator.set_block_positions_grid_b
+
         obj = @
 
         # The remainder of this function connects to signals required to:
@@ -44,6 +56,18 @@ class ControllerTableView
             @update_controller_table()
         )
 
+    set_grid: (controller, grid_label) =>
+        controller.get_block_positions((block_positions) =>
+            last_config = @last_config[grid_label]
+            if controller.config.netlist_path != (last_config.netlist_path ? null)
+                # If we're setting a placement for a new netlist, reset the grid, since:
+                #   a) The new netlist may have a different number of IO/logic blocks 
+                #   b) The new architecture may have a different shape, i.e.,
+                #      width/height.
+                @reset_grid[grid_label](controller.place_context)
+            @set_block_positions_grid[grid_label](block_positions)
+            @last_config[grid_label] = controller.config
+        )
 
     update_controller_table: () =>
         obj = @
@@ -85,22 +109,10 @@ class ControllerTableView
                     )
                 )
                 c.row().find('.action_placement_a > button').click(() ->
-                    c.get_block_positions((block_positions) ->
-                        previous_config = obj.controller_manager.last_a_config ? {}
-                        if c.config.netlist_path != (previous_config.netlist_path ? null)
-                            obj.placement_comparator.reset_grid_a(c.place_context)
-                        obj.placement_comparator.set_block_positions_grid_a(block_positions)
-                        obj.controller_manager.last_a_config = c.config
-                    )
+                    obj.set_grid(c, 'a')
                 )
                 c.row().find('.action_placement_b > button').click(() ->
-                    c.get_block_positions((block_positions) ->
-                        previous_config = obj.controller_manager.last_b_config ? {}
-                        if c.config.netlist_path != (previous_config.netlist_path ? null)
-                            obj.placement_comparator.reset_grid_b(c.place_context)
-                        obj.placement_comparator.set_block_positions_grid_b(block_positions)
-                        obj.controller_manager.last_b_config = c.config
-                    )
+                    obj.set_grid(c, 'b')
                 )
             )
 
