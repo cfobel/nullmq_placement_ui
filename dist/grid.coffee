@@ -105,7 +105,19 @@ class PlacementGrid
         @block_positions = null
         @swap_infos = new Array()
 
+        obj = @
+
         $(obj).on('block_mouseover', (e) => @update_header(e.block))
+        $(obj).on('block_click', (e) =>
+            if not e.d.selected
+                @select_block(e.d)
+                e.d.selected = true
+                console.log("block_selected", e)
+            else
+                @deselect_block(e.d)
+                e.d.selected = false
+                console.log("block_deselected", e)
+        )
 
     update_header: (block) =>
         obj = @
@@ -263,6 +275,7 @@ class PlacementGrid
                 .attr("height", @block_height())
                 .on('click', (d, i) ->
                     b = new Block(i)
+                    console.log("clicked", d: d, i: i)
                     $(obj).trigger(type: 'block_click', grid: obj, block: b, block_id: i, d: d)
                 )
                 .on('mouseout', (d, i) =>
