@@ -58,16 +58,14 @@ class PlacementComparator
 
     reset_grid_a: (place_context) =>
         @grid_containers.a.html('')
-        @place_context_a = place_context
-        @grids.a = new PlacementGrid(@grid_containers.a.attr("id"))
+        @grids.a = new ControllerPlacementGrid(place_context, @grid_containers.a.attr("id"))
         @_connect_grid_signals(@grids.a)
         if @grids.b?
             @grids.b.set_zoom([0, 0], 1, false)
 
     reset_grid_b: (place_context) =>
         @grid_containers.b.html('')
-        @place_context_b = place_context
-        @grids.b = new PlacementGrid(@grid_containers.b.attr("id"))
+        @grids.b = new ControllerPlacementGrid(place_context, @grid_containers.b.attr("id"))
         @_connect_grid_signals(@grids.b)
         if @grids.a?
             @grids.a.set_zoom([0, 0], 1, false)

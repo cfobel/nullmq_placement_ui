@@ -320,6 +320,11 @@ class PlacementGrid
             .attr("transform", (d) => "translate(" + @scale.x(d.second_index) + ", " + @scale.y(d.first_index + d.first_extent - 1) + ")")
 
 
+class ControllerPlacementGrid extends PlacementGrid
+    constructor: (@place_context, @id, @width=null) ->
+        super @id, @width
+
+
 class AreaRange
     constructor: (@first_index, @second_index, @first_extent, @second_extent) ->
 
@@ -328,5 +333,6 @@ class AreaRange
 
 
 @PlacementGrid = PlacementGrid
+@ControllerPlacementGrid = ControllerPlacementGrid
 @AreaRange = AreaRange
 @Block = Block
