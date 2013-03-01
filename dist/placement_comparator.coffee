@@ -85,12 +85,8 @@ class PlacementComparator
 
     _connect_grid_signals: (grid) =>
         $(grid).on("block_mouseover", (e) =>
-            @select_blocks_by_id([e.block.id]).classed('hovered', true)
             if @grids.a? then @grids.a.update_header(e.block)
             if @grids.b? then @grids.b.update_header(e.block)
-        )
-        $(grid).on("block_mouseout", (e) =>
-            @select_blocks_by_id([e.block.id]).classed('hovered', false)
         )
         $(grid).on("block_click", (e) =>
             @select_blocks_by_id([e.block.id]).classed('selected', (d) ->

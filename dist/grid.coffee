@@ -273,10 +273,12 @@ class PlacementGrid
                 )
                 .on('mouseout', (d, i) =>
                     b = new Block(i)
+                    b.rect(obj).classed('hovered', false)
                     $(obj).trigger(type: 'block_mouseout', grid: obj, rect: this, block: b, block_id: i, d: d)
                 )
                 .on('mouseover', (d, i) =>
                     b = new Block(i)
+                    b.rect(obj).classed('hovered', true)
                     $(obj).trigger(type: 'block_mouseover', grid: obj, rect: this, block: b, block_id: i, d: d)
                 )
                 # Center block within cell
