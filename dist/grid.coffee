@@ -57,7 +57,7 @@ class PlacementGrid
         @zoom = d3.behavior.zoom()
         @grid_container = d3.select('#' + @id)
         @header = @grid_container.append('div')
-                    .attr('class', 'grid_header')
+            .attr('class', 'grid_header')
         if not @width?
             obj = @
             jq_obj = $(obj.grid_container[0])
@@ -67,15 +67,27 @@ class PlacementGrid
             @width = Math.min(width, height)
             #console.log("PlacementGrid", "inferred width", @width)
         @width /= 1.15
-        @grid = d3.select("#" + @id)
-                    .append("svg")
-                        .attr("width", 1.1 * @width)
-                        .attr("height", 1.1 * @width)
-                    .append('svg:g')
-                        .attr("id", @id + "_transform_group")
-                        .call(@zoom.on("zoom", () => @update_zoom()))
-                    .append('svg:g')
-                        .attr("class", "chart")
+
+        # Create SVG element for canvas
+        @canvas = @grid_container.append("svg")
+            .attr("width", 1.1 * @width)
+            .attr("height", 1.1 * @width)
+
+        # Add a background rectangle to catch any zoom/pan events that are not
+        # caught by any upper layers that are not caught by any upper layers
+        @canvas.append('svg:rect')
+            .classed('grid_background', true)
+            .attr("width", 1.1 * @width)
+            .attr("height", 1.1 * @width)
+            .call(@zoom.on("zoom", () => @update_zoom()))
+
+        # Catch any zoom/pan events over grid elements.
+        @grid = @canvas.append('svg:g')
+            .attr("id", @id + "_transform_group")
+            .call(@zoom.on("zoom", () => @update_zoom()))
+          .append('svg:g')
+            .attr("class", "chart")
+
         zoom = window.location.hash
         result = /#translate\((-?\d+\.\d+),(-?\d+\.\d+)\)\s+scale\((-?\d+\.\d+)\)/.exec(zoom)
         if result and result.length == 4
@@ -108,15 +120,17 @@ class PlacementGrid
         obj = @
 
         $(obj).on('block_mouseover', (e) => @update_header(e.block))
-        $(obj).on('block_click', (e) =>
+        $(obj).on('block_click', (e) ->
             if not e.d.selected
-                @select_block(e.d)
+                d3.select(e.rect).classed('selected', true)
+                obj.select_block(e.d)
                 e.d.selected = true
                 response = $().extend({}, e)
                 response.type = 'block_selected'
                 $(obj).trigger(response)
             else
-                @deselect_block(e.d)
+                d3.select(e.rect).classed('selected', true)
+                obj.deselect_block(e.d)
                 e.d.selected = false
                 response = $().extend({}, e)
                 response.type = 'block_deselected'
@@ -194,36 +208,22 @@ class PlacementGrid
     #
     # *see `translate_block_positions`
     cell_height: () -> @scale.y(@dims.y.max)
-    block_width: () -> 0.8 * @cell_width()
-    block_height: () -> 0.8 * @cell_height()
-    block_color: (d) ->
-        result = if d.io then @io_fill_color else d.fill_color
-        return result
+    block_width: () -> 0.7 * @cell_width()
+    block_height: () -> 0.7 * @cell_height()
     cell_position: (d) => x: @scale.x(d.y), y: @scale.y(d.x)
     cell_center: (d) =>
         position = @cell_position d
         x: position.x + 0.5 * @cell_width(), y: position.y + 0.5 * @cell_height()
 
-    clear_selection: () ->
-        @_selected_blocks = {}
-        #@update_selected_block_info()
-        # Skip cell formatting until we can verify that it is working as
-        # expected.
-        #@update_cell_formats()
+    clear_selection: () =>
+        for block_id, none of @_selected_blocks
+            @deselect_block(@block_positions[block_id])
 
     select_block: (d) ->
         @_selected_blocks[d.block_id] = null
-        #@update_selected_block_info()
-        # Skip cell formatting until we can verify that it is working as
-        # expected.
-        #@update_cell_formats()
 
     deselect_block: (d) ->
         delete @_selected_blocks[d.block_id]
-        #@update_selected_block_info()
-        # Skip cell formatting until we can verify that it is working as
-        # expected.
-        #@update_cell_formats()
 
     selected_block_ids: () -> +v for v in Object.keys(@_selected_blocks)
 
@@ -245,18 +245,8 @@ class PlacementGrid
     set_block_positions: (block_positions) ->
         @block_positions = block_positions
         @update_cell_data()
-        # Skip cell formatting until we can verify that it is working as
-        # expected.
-        #@update_cell_formats()
         @update_cell_positions()
         #@update_selected_block_info()
-
-    reset_block_formats: ->
-        blocks = @grid.selectAll('.block')
-            .style("stroke", '#555')
-            .style("fill", "black")
-            .style('opacity', 1.0)
-            .style('stroke-width', 1.0)
 
     update_cell_data: () ->
         # Each tag of class `cell` is an SVG group tag.  Each such group
@@ -279,19 +269,16 @@ class PlacementGrid
                 .attr("height", @block_height())
                 .on('click', (d, i) ->
                     b = new Block(i)
-                    $(obj).trigger(type: 'block_click', grid: obj, block: b, block_id: i, d: d)
+                    $(obj).trigger(type: 'block_click', grid: obj, rect: this, block: b, block_id: i, d: d)
                 )
                 .on('mouseout', (d, i) =>
                     b = new Block(i)
-                    $(obj).trigger(type: 'block_mouseout', grid: obj, block: b, block_id: i, d: d)
+                    $(obj).trigger(type: 'block_mouseout', grid: obj, rect: this, block: b, block_id: i, d: d)
                 )
                 .on('mouseover', (d, i) =>
                     b = new Block(i)
-                    $(obj).trigger(type: 'block_mouseover', grid: obj, block: b, block_id: i, d: d)
+                    $(obj).trigger(type: 'block_mouseover', grid: obj, rect: this, block: b, block_id: i, d: d)
                 )
-                .style("stroke", '#555')
-                .style('fill-opacity', (d) -> d.fill_opacity)
-                .style('stroke-width', (d) -> d.stroke_width)
                 # Center block within cell
                 .attr("transform", (d) =>
                     x_padding = (@cell_width() - @block_width()) / 2
@@ -308,52 +295,29 @@ class PlacementGrid
                 position = @cell_position d
                 "translate(" + position.x + "," + position.y + ")")
 
-    update_cell_formats: () ->
-        obj = @
-        blocks = @grid.selectAll(".cell").select(".block")
-            .style("fill", (d) ->
-                if obj.selected(d.block_id)
-                    obj.selected_fill_color()
-                else
-                    obj.block_color(d)
-            )
-            .style("fill-opacity", (d) ->
-                if obj.selected(d.block_id)
-                    d.fill_opacity = 0.8
-                else
-                    d.fill_opacity = 0.5
-                return d.fill_opacity
-            )
-            .style("stroke-width", (d) ->
-                if obj.selected(d.block_id)
-                    d.stroke_width = 4
-                else
-                    d.stroke_width = 1
-                return d.stroke_width
-            )
-
-    highlight_area_range: (a) ->
-        area_range_group = d3.select(".chart").append("svg:g")
-            .attr("class", "area_range_group")
-            .style("opacity", 0.75)
-            .append("svg:rect")
-            .attr("class", "area_range_outline")
-            .attr("width", a.second_extent * @scale.x(1))
-            .attr("height", a.first_extent * @scale.y(@dims.y.max))
+    highlight_area_ranges: (area_ranges) ->
+        console.log('highlight_area_ranges', area_ranges)
+        area_ranges = @grid.selectAll('.area_range')
+            .data(area_ranges)
+          .enter().append("svg:rect")
+            .attr("class", "area_range")
+            .attr("width", (d) => d.second_extent * @scale.x(1))
+            .attr("height", (d) => d.first_extent * @scale.y(@dims.y.max))
+            .style("stroke", (d) => @colors((d.first_index * d.second_index) % 10))
+            .style("fill", "none")
+            .style("stroke-width", 7)
+            .style('opacity', 0.75)
             .on('mouseover', (d) ->
                 d3.select(this).style("stroke-width", 10)
             )
             .on('mouseout', (d) ->
                 d3.select(this).style("stroke-width", 7)
             )
-            .style("fill", "none")
-            .style("stroke", @colors((a.first_index * a.second_index) % 10))
-            .style("stroke-width", 7)
 
-        area_range_group.transition()
+        area_ranges.transition()
             .duration(400)
             .ease("cubic-in-out")
-            .attr("transform", "translate(" + @scale.x(a.second_index) + ", " + @scale.y(a.first_index + a.first_extent - 1) + ")")
+            .attr("transform", (d) => "translate(" + @scale.x(d.second_index) + ", " + @scale.y(d.first_index + d.first_extent - 1) + ")")
 
 
 class AreaRange

@@ -6,6 +6,10 @@ class ControllerTableView
         @template_text = d3.select("#id_controller_row_template").html()
         @template = _.template(@template_text)
 
+        @grids =
+            a: @placement_comparator.grids.a
+            b: @placement_comparator.grids.b
+
         @reset_grid =
             a: @placement_comparator.reset_grid_a
             b: @placement_comparator.reset_grid_b
@@ -58,15 +62,20 @@ class ControllerTableView
 
     set_grid: (controller, grid_label) =>
         controller.get_block_positions((block_positions) =>
-            last_config = @last_config[grid_label]
-            if controller.config.netlist_path != (last_config.netlist_path ? null)
-                # If we're setting a placement for a new netlist, reset the grid, since:
-                #   a) The new netlist may have a different number of IO/logic blocks 
-                #   b) The new architecture may have a different shape, i.e.,
-                #      width/height.
-                @reset_grid[grid_label](controller.place_context)
-            @set_block_positions_grid[grid_label](block_positions)
-            @last_config[grid_label] = controller.config
+            controller.do_command({"command": "config"}, (result) =>
+                last_config = @last_config[grid_label]
+                if controller.config.netlist_path != (last_config.netlist_path ? null)
+                    # If we're setting a placement for a new netlist, reset the grid, since:
+                    #   a) The new netlist may have a different number of IO/logic blocks 
+                    #   b) The new architecture may have a different shape, i.e.,
+                    #      width/height.
+                    @reset_grid[grid_label](controller.place_context)
+                @set_block_positions_grid[grid_label](block_positions)
+
+                area_ranges = (new AreaRange(a[0], a[1], a[2], a[3]) for a in result.area_ranges)
+                @placement_comparator.grids[grid_label].highlight_area_ranges(area_ranges)
+                @last_config[grid_label] = controller.config
+            )
         )
 
     update_controller_table: () =>

@@ -740,9 +740,8 @@ class ModifierController extends EchoJsonController
         obj = @
         @do_request({"command": "config"}, (response) =>
             config = response.result
-            for a, i in config.area_ranges
-                a = new AreaRange(a[0], a[1], a[2], a[3])
-                @placement_grid.highlight_area_range(a)
+            area_ranges = (new AreaRange(a[0], a[1], a[2], a[3]) for a in config.area_ranges)
+            @placement_grid.highlight_area_ranges(area_ranges)
             @do_request({"command": "net_to_block_id_list"}, (value) =>
                 obj.net_to_block_ids = value.result
                 @do_request({"command": "block_to_net_ids"}, (value) =>
@@ -780,7 +779,6 @@ class ModifierController extends EchoJsonController
             # There is no current swap context, so do nothing
             swap_context = null
             d3.selectAll('.swap_link').remove()
-            @placement_grid.reset_block_formats()
 
     home: () =>
         @_state = @_states.IDLE
