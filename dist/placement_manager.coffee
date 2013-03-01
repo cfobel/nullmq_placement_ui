@@ -204,7 +204,7 @@ class SwapContext
         (swap_info.swap_config.ids.from_ for swap_id,swap_info of swap_dict when swap_info.swap_config.ids.from_ >= 0 and (not only_master or swap_info.swap_config.master > 0))
     to_ids: (swap_dict, only_master=false) -> (swap_info.swap_config.ids.to for swap_id,swap_info of swap_dict when swap_info.swap_config.ids.to >= 0 and (not only_master or swap_info.swap_config.master > 0))
 
-    block_element_ids: (block_ids) -> ("#id_block_" + id for id in block_ids)
+    block_element_classes: (block_ids) -> (".block_" + id for id in block_ids)
 
     accepted_count: () => Object.keys(@accepted).length
 
@@ -217,7 +217,7 @@ class SwapContext
         colorize = (block_ids, fill_color, opacity=null) =>
             if block_ids.length <= 0
                 return
-            g.selectAll(@block_element_ids(block_ids).join(", "))
+            g.selectAll(@block_element_classes(block_ids).join(", "))
                 .style("fill", fill_color)
                 .style("opacity", opacity ? 1.0)
         colorize(@from_ids(@not_participated), "red", 0.5)

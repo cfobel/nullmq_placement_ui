@@ -108,6 +108,14 @@ class ModifierController extends EchoJsonController
 
         obj = @
 
+        $(obj.placement_grid).on('block_mouseover', (e) =>
+            obj.block_mouseover(e.d, e.block_id, e.block.rect(obj.placement_grid))
+        )
+
+        $(obj.placement_grid).on('block_mouseout', (e) =>
+            obj.block_mouseout(e.d, e.block_id, e.block.rect(obj.placement_grid))
+        )
+
         $(obj).on("initialized", (e) -> 
             status_be_uri = e.response.result.status_be_uri
             if status_be_uri[0..6] == "tcp://*"
@@ -127,7 +135,8 @@ class ModifierController extends EchoJsonController
         $(obj).on("placement_manager_up_to_date", (e) -> console.log("on: placement_manager_up_to_date", e))
         $(obj).on("swap_context_focus_set", (e) =>
             @apply_swap_links()
-            console.log("{swap_context_focus_set}", placement_i: @placement_i, swap_context_i: @swap_context_i)
+            if e.swap_context?
+                e.swap_context.update_block_formats(obj.placement_grid)
             @update_swap_context_info()
             @on_swap_context_changed()
         )
@@ -803,10 +812,7 @@ class ModifierController extends EchoJsonController
             swap_context = @placement_manager.swap_contexts[@swap_context_i]
         else
             swap_context = null
-        $(obj).trigger(type: "swap_context_focus_set", {
-            swap_context_i: @swap_context_i,
-            swap_context: swap_context
-        })
+        $(obj).trigger(type: "swap_context_focus_set", swap_context_i: @swap_context_i, swap_context: swap_context)
 
     next: =>
         console.log('[next]')
