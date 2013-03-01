@@ -75,22 +75,27 @@ class ModifierController extends EchoJsonController
         @swap_contexts = new Array()
         super @context, @action_uri
         @initialized = false
-        @placement_grid.block_mouseover = @block_mouseover
-        @placement_grid.block_mouseout = @block_mouseout
         @to_rect = null
         @swap_context_i = null
         _.templateSettings =
           interpolate: /\{\{(.+?)\}\}/g
-        @swap_template_text = d3.select("#swap_template").html()
-        @swap_template = _.template(@swap_template_text)
-        @swap_delta_template_text = d3.select("#id_swap_delta_template").html()
-        @swap_delta_template = _.template(@swap_delta_template_text)
-        @swap_context_template_text = d3.select("#swap_context_template").html()
-        @swap_context_template = _.template(@swap_context_template_text)
-        @swap_context_detail_template_text =
-                d3.select("#swap_context_detail_template").html()
-        @swap_context_detail_template =
-                _.template(@swap_context_detail_template_text)
+
+        @templates =
+            swap:
+                text: d3.select("#swap_template").html()
+            swap_delta:
+                text: d3.select("#id_swap_delta_template").html()
+            swap_context:
+                text: d3.select("#swap_context_template").html()
+            swap_context_detail:
+                text: d3.select("#swap_context_detail_template").html()
+            info:
+                text: d3.select("#placement_info_template").html()
+
+        #@selected_container = d3.select("#placement_info_selected")
+
+        for k, t of @templates
+            t.render = _.template(t.text)
 
         @_listening_for_update = false
         @_previous_swap_context
@@ -303,7 +308,7 @@ class ModifierController extends EchoJsonController
                 .html((d) ->
                     net_ids = (b for b in obj.block_to_net_ids[i] when b >= 0)
                     value = $().extend({net_ids: net_ids}, d)
-                    placement_grid.template(value)
+                    obj.templates.info.render(value)
                 )
         current_info.exit().remove()
 
@@ -416,7 +421,7 @@ class ModifierController extends EchoJsonController
                         return id_text
                     )
                     .html((d, i) =>
-                        @swap_template(d)
+                        obj.templates.swap.render(d)
                     )
                     .each((d, i) =>
                         try
@@ -447,8 +452,8 @@ class ModifierController extends EchoJsonController
                                     # delta costs.  If there is no delta cost
                                     # matrix, `table_data.*.matrix` will be set
                                     # to `null`, so we check for that here.
-                                    from_: if table_data.from_.matrix? then @swap_delta_template(from_d) else ''
-                                    to: if table_data.to.matrix? then @swap_delta_template(to_d) else ''
+                                    from_: if table_data.from_.matrix? then obj.templates.swap_delta.render(from_d) else ''
+                                    to: if table_data.to.matrix? then obj.templates.swap_delta.render(to_d) else ''
                                 @_last_data = table_data: table_data, content: content
                                 popover_options.content = content.from_ + content.to
                                 popover_options.onShown = () ->
@@ -630,7 +635,7 @@ class ModifierController extends EchoJsonController
                     return id_text
                 )
                 .html((d, i) =>
-                    @swap_context_template(d)
+                    @templates.swap_context.render(d)
                 )
                 .each((d, i) ->
                     d3.select("#id_swap_context_select_" + d.index).on("click", () ->
@@ -648,7 +653,7 @@ class ModifierController extends EchoJsonController
 
         detailed_infos = d3.selectAll(".swap_context_info_detail")
             .html((d, i) =>
-                @swap_context_detail_template(d)
+                @templates.swap_context_detail.render(d)
             )
             # Add a details table for each swap context to the corresponding
             # modal element.
