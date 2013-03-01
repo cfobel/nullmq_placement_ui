@@ -112,11 +112,15 @@ class PlacementGrid
             if not e.d.selected
                 @select_block(e.d)
                 e.d.selected = true
-                console.log("block_selected", e)
+                response = $().extend({}, e)
+                response.type = 'block_selected'
+                $(obj).trigger(response)
             else
                 @deselect_block(e.d)
                 e.d.selected = false
-                console.log("block_deselected", e)
+                response = $().extend({}, e)
+                response.type = 'block_deselected'
+                $(obj).trigger(response)
         )
 
     update_header: (block) =>
@@ -275,7 +279,6 @@ class PlacementGrid
                 .attr("height", @block_height())
                 .on('click', (d, i) ->
                     b = new Block(i)
-                    console.log("clicked", d: d, i: i)
                     $(obj).trigger(type: 'block_click', grid: obj, block: b, block_id: i, d: d)
                 )
                 .on('mouseout', (d, i) =>

@@ -70,18 +70,21 @@ class PlacementComparator
     _connect_grid_signals: (grid) =>
         $(grid).on("block_mouseover", (e) =>
             @select_blocks_by_id([e.block.id]).style("fill-opacity", 1.0)
-            @grid_a.update_header(e.block)
-            @grid_b.update_header(e.block)
+            if @grid_a? then @grid_a.update_header(e.block)
+            if @grid_b? then @grid_b.update_header(e.block)
         )
         $(grid).on("block_mouseout", (e) =>
             @select_blocks_by_id([e.block.id])
                 .style("fill-opacity", (d) -> d.fill_opacity)
                 .style("stroke-width", (d) -> d.stroke_width)
         )
-        $(grid).on("block_click", (e) =>
-            @block_toggle_select(@grid_a, e)
-            @block_toggle_select(@grid_b, e)
-            @highlight_selected()
+        $(grid).on("block_selected", (e) =>
+            rect = e.block.rect(grid)
+            e.d.original_fill = rect.style("fill")
+            e.block.rect(grid).style("fill", "orange")
+        )
+        $(grid).on("block_deselected", (e) =>
+            e.block.rect(grid).style("fill", e.d.original_fill ? "grey")
         )
         $(grid).on("zoom_updated", (e) =>
             # When zoom is updated on grid a, update grid b to match.
@@ -89,7 +92,8 @@ class PlacementComparator
             # in an endless ping-pong back-and-forth between the two grids.
             @opposite_grids[@grid_a_container_id] = @grid_b
             @opposite_grids[@grid_b_container_id] = @grid_a
-            @opposite_grids[grid.id].set_zoom(e.translate, e.scale, false)
+            if @opposite_grids[grid.id]?
+                @opposite_grids[grid.id].set_zoom(e.translate, e.scale, false)
         )
 
     block_emphasize: (grid, block) =>
