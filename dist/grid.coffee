@@ -4,6 +4,11 @@ class Block
     rect: (grid) => d3.select("#" + grid.grid_container.attr("id") + " ." + @rect_id())
 
 
+class Net
+    constructor: (@net_id, @block_ids) ->
+        @cardinality = @block_ids.length
+
+
 class Curve
     constructor: (@_source=null, @_target=null, @_translate=null) ->
         if @_translate == null
@@ -83,10 +88,16 @@ class PlacementGrid
 
         # Catch any zoom/pan events over grid elements.
         @grid = @canvas.append('svg:g')
-            .attr("id", @id + "_transform_group")
+            .attr('class', '_transform_group')
             .call(@zoom.on("zoom", () => @update_zoom()))
-          .append('svg:g')
-            .attr("class", "chart")
+          .append('g')
+            .attr('class', 'grid')
+
+        @blocks = @grid.append('svg:g')
+            .attr("class", "blocks")
+
+        @area_ranges = @grid.append('svg:g')
+            .attr("class", "area_ranges")
 
         zoom = window.location.hash
         result = /#translate\((-?\d+\.\d+),(-?\d+\.\d+)\)\s+scale\((-?\d+\.\d+)\)/.exec(zoom)
@@ -246,13 +257,13 @@ class PlacementGrid
         @block_positions = block_positions
         @update_cell_data()
         @update_cell_positions()
-        #@update_selected_block_info()
+        @set_selected_nets()
 
     update_cell_data: () ->
         # Each tag of class `cell` is an SVG group tag.  Each such group
         # contains an SVG rectangle tag, corresponding to a block in the
         # placement grid.
-        blocks = @grid.selectAll(".cell")
+        blocks = @blocks.selectAll(".cell")
             .data(@block_positions, (d) -> d.block_id)
 
         obj = @
@@ -271,12 +282,12 @@ class PlacementGrid
                     b = new Block(i)
                     $(obj).trigger(type: 'block_click', grid: obj, rect: this, block: b, block_id: i, d: d)
                 )
-                .on('mouseout', (d, i) =>
+                .on('mouseout', (d, i) ->
                     b = new Block(i)
                     b.rect(obj).classed('hovered', false)
                     $(obj).trigger(type: 'block_mouseout', grid: obj, rect: this, block: b, block_id: i, d: d)
                 )
-                .on('mouseover', (d, i) =>
+                .on('mouseover', (d, i) ->
                     b = new Block(i)
                     b.rect(obj).classed('hovered', true)
                     $(obj).trigger(type: 'block_mouseover', grid: obj, rect: this, block: b, block_id: i, d: d)
@@ -290,7 +301,7 @@ class PlacementGrid
         blocks.exit().remove()
 
     update_cell_positions: () ->
-        @grid.selectAll(".cell").transition()
+        @blocks.selectAll(".cell").transition()
             .duration(600)
             .ease("cubic-in-out")
             .attr("transform", (d) =>
@@ -298,8 +309,7 @@ class PlacementGrid
                 "translate(" + position.x + "," + position.y + ")")
 
     highlight_area_ranges: (area_ranges) ->
-        console.log('highlight_area_ranges', area_ranges)
-        area_ranges = @grid.selectAll('.area_range')
+        area_ranges = @area_ranges.selectAll('.area_range')
             .data(area_ranges)
           .enter().append("svg:rect")
             .attr("class", "area_range")
@@ -325,6 +335,147 @@ class PlacementGrid
 class ControllerPlacementGrid extends PlacementGrid
     constructor: (@place_context, @id, @width=null) ->
         super @id, @width
+        @net_groups = @grid.append('svg:g')
+            .attr("class", "net_groups")
+        @nets = (@net_by_id(n) for n in [0..@place_context.net_to_block_ids.length - 1])
+        obj = @
+        $(obj).on('block_mouseover', (e) ->
+            d3.select(e.rect).classed('net_hovered', true)
+            @set_selected_nets()
+        )
+        $(obj).on('block_mouseout', (e) =>
+            d3.select(e.rect).classed('net_hovered', false)
+            @set_selected_nets()
+        )
+        $(obj).on('block_selected', (e) ->
+            @set_selected_nets()
+        )
+
+    set_selected_nets: () =>
+        rects_to_show_nets_for = @blocks.selectAll('.net_hovered, .selected')[0]
+        nets_to_show = {}
+        blocks = (d.__data__ for d in rects_to_show_nets_for)
+        nets_by_block_id = @nets_by_block_id((b.block_id for b in blocks))
+        nets_unmerged = d3.merge((v for k, v of nets_by_block_id))
+        nets = _.uniq(nets_unmerged)
+        @set_nets(nets)
+
+    set_nets: (nets) =>
+        @grid.selectAll('.net_group').remove()
+        nets = (n for n in nets when n.cardinality < 10)
+        if nets.length <= 0
+            return
+
+        obj = @
+
+        target_opacity = null
+
+        net_group = @grid.selectAll('.net_group')
+            .data(nets)
+          .enter().append('g')
+            .classed('net_group', true)
+            .style('opacity', (d) ->
+                target_opacity = d3.select(this).style('opacity')
+                0
+            )
+
+        extract_value = (d) =>
+            root_coords = obj.cell_center(obj.center_of_gravity(d.net_id))
+            target_coords = _.map(obj.block_coords(d.net_id), obj.cell_center)
+
+            ({net_id: d.net_id, target: t, center_of_gravity: root_coords} for t in target_coords)
+
+        net_link = net_group.selectAll('.net_link')
+            .data(extract_value, (d) -> JSON.stringify(d))
+          .enter().append('line')
+            .attr('class', 'net_link')
+            .attr("x1", (d) -> d.center_of_gravity.x)
+            .attr("y1", (d) -> d.center_of_gravity.y)
+            .attr("x2", (d) -> d.target.x)
+            .attr("y2", (d) -> d.target.y)
+
+        net_link = net_group.selectAll('.center_of_gravity')
+            .data((d) -> [obj.cell_center(obj.center_of_gravity(d.net_id))])
+          .enter().append('circle')
+            .attr("class", "center_of_gravity")
+            .attr("data-net_id", (d) -> d.net_id)
+            .attr("cx", (d) -> d.x)
+            .attr("cy", (d) -> d.y)
+            .attr("r", 8)
+
+        net_group.transition()
+            .style('opacity', target_opacity)
+
+    connected_block_ids: (block_id) =>
+        try
+            connected_block_ids = []
+            net_ids = @place_context.block_to_net_ids[block_id]
+            for i in [0..@place_context.block_net_counts[block_id] - 1]
+                net_id = net_ids[i]
+                for b in @place_context.net_to_block_ids[net_id]
+                    if b != block_id
+                        connected_block_ids.push(b)
+            return _.sortBy(_.uniq(connected_block_ids), (v) -> v) #, (name: i for i in [0..10])]
+        catch error
+            @_last_error = error
+            throw error
+
+    connected_block_ids_by_root_block_ids: (block_ids) =>
+        (root: b,  connected_block_ids: @connected_block_ids(b) for b in block_ids)
+
+    nets_by_block_id: (block_ids) ->
+        nets = {}
+        for b in block_ids
+            nets[b] = (@nets[n] for n in @place_context.block_to_net_ids[b] when n >= 0)
+        nets
+
+    map_nets_by_block_id: (block_ids, f) ->
+        nets_by_block_id = @nets_by_block_id(block_ids)
+        results = []
+        for b, nets of nets_by_block_id
+            results.push(_.map(nets, f))
+        results
+
+    net_by_id: (net_id) =>
+        block_ids = @place_context.net_to_block_ids[net_id]
+        return new Net(net_id, block_ids)
+
+    select_block_elements_by_ids: (block_ids) =>
+        if block_ids.length > 0
+            block_element_ids = (".block_" + i for i in block_ids)
+            return @blocks.selectAll(block_element_ids.join(","))
+        else
+            # Empty selection
+            return d3.select()
+
+    set_block_positions: (block_positions) =>
+        super block_positions
+        @set_selected_nets()
+
+    highlight_selected_net_blocks: (net_id) =>
+        @grid.selectAll((".block_" + b for b in @nets[net_id].block_ids).join(', '))
+            .classed('net_hovered', true)
+
+    unhighlight_selected_net_blocks: (net_id) =>
+        @grid.selectAll((".block_" + b for b in @nets[net_id].block_ids).join(', '))
+            .classed('net_hovered', false)
+
+    block_coords: (net_id) =>
+        coords = []
+        for b in @nets[net_id].block_ids
+            p = @block_positions[b]
+            coords.push(x: p.x, y: p.y)
+        coords
+
+    center_of_gravity: (net_id) ->
+        x_sum = 0
+        y_sum = 0
+        coords = @block_coords(net_id)
+        for c in coords
+            x_sum += c.x
+            y_sum += c.y
+        x: x_sum / coords.length, y: y_sum / coords.length
+
 
 
 class AreaRange

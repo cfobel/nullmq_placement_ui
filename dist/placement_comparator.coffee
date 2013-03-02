@@ -130,6 +130,9 @@ class PlacementComparator
         ids = if @grids.a? then @grids.a.selected_block_ids() else []
         ids = ids.concat(if @grids.b? then @grids.b.selected_block_ids() else [])
         @select_blocks_by_id(ids).classed('selected', true)
+        for label in ['a', 'b']
+            if @grids[label]?
+                @grids[label].set_selected_nets()
 
     # UI update
     highlight_comparison: () =>
