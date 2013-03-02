@@ -85,8 +85,32 @@ class PlacementComparator
 
     _connect_grid_signals: (grid) =>
         $(grid).on("block_mouseover", (e) =>
-            if @grids.a? then @grids.a.update_header(e.block)
-            if @grids.b? then @grids.b.update_header(e.block)
+            if @grids.a?
+                @grids.a.update_header(e.block)
+                if e.grid == @grids.b
+                    e.block.rect(@grids.a)
+                        .classed('hovered', true)
+                        .classed('net_hovered', true)
+                    @grids.a.set_selected_nets()
+            if @grids.b?
+                @grids.b.update_header(e.block)
+                if e.grid == @grids.a
+                    e.block.rect(@grids.b)
+                        .classed('hovered', true)
+                        .classed('net_hovered', true)
+                    @grids.b.set_selected_nets()
+        )
+        $(grid).on("block_mouseout", (e) =>
+            if @grids.b? and e.grid == @grids.a
+                e.block.rect(@grids.b)
+                    .classed('hovered', false)
+                    .classed('net_hovered', false)
+                @grids.b.set_selected_nets()
+            if @grids.a? and e.grid == @grids.b
+                e.block.rect(@grids.a)
+                    .classed('hovered', false)
+                    .classed('net_hovered', false)
+                @grids.a.set_selected_nets()
         )
         $(grid).on("block_click", (e) =>
             @select_blocks_by_id([e.block.id]).classed('selected', (d) ->
