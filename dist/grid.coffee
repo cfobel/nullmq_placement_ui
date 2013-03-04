@@ -257,7 +257,6 @@ class PlacementGrid
         @block_positions = block_positions
         @update_cell_data()
         @update_cell_positions()
-        @set_selected_nets()
 
     update_cell_data: () ->
         # Each tag of class `cell` is an SVG group tag.  Each such group
