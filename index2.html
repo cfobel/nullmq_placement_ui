@@ -207,7 +207,7 @@
     @bridge_uri = $('#id_nullmq_zmq_bridge option:selected').val()
     @zmq_context = new nullmq.Context(@bridge_uri)
 
-    @controller_factory = new ControllerFactoryProxy(@zmq_context, 'tcp://localhost:33333')
+    @controller_factory = new ControllerFactoryProxy(@zmq_context, 'tcp://maeby.fobel.net:33333')
     @controller_manager = new ControllerProxyManager()
     @placement_comparator = new PlacementComparator(
         d3.select("#id_placement_a"),
