@@ -17,6 +17,7 @@
 <script type="text/javascript" src="/dist/bootstrap/js/bootstrap.min.js"></script>
 <script type="text/javascript" src="/dist/bootstrap/js/bootstrapx-clickover.js"></script>
 <script type="text/javascript" src="/dist/lib/bootstrap-contextmenu.js"></script>
+<script type="text/javascript" src="/dist/lib/jsxcompressor/jsxcompressor.min.js"></script>
 <style  type="text/css">
 .improving {
     background-color: #D5ECBF !important;
@@ -69,7 +70,7 @@
     opacity: 0.5;
 }
 
-.block.swap_block.master.non_participate.hovered {
+.block.swap_block.master.non_participate.hovered, .block.swap_block.master.non_participate.selected {
     opacity: 1.0;
 }
 
@@ -270,10 +271,9 @@
                 @placement_comparator.reset_grid_a()
                 @placement_comparator.grids.a.set_raw_block_positions(placement.block_positions)
                 console.log('Request swap context', swap_keys: swap_keys[0])
-                p.get_swap_context(((swap_context_raw) =>
+                p.get_swap_context(((swap_context) =>
                     console.log('Received swap context', swap_keys: swap_keys[0])
-                    s = new SwapContext(placement)
-                    $().extend(s, swap_context_raw)
+                    s = swap_context
                     s.update_block_formats(@placement_comparator.grids.a)
                     s.set_swap_link_data(@placement_comparator.grids.a)
                     s.update_link_formats(@placement_comparator.grids.a)

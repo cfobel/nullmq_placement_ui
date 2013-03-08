@@ -34,9 +34,13 @@ class PlacementManagerProxy extends EchoJsonController
         super @context, @req_uri
 
     get_result: (command_dict, on_recv) ->
+        if not command_dict.gzip?
+            command_dict.gzip = true
         @do_request(command_dict, (response) ->
             if 'error' of response
                 throw '[error] ' + response['error']
+            if response.gzip ? false
+                response.result = JSON.parse(JXG.decompress(response.result))
             on_recv(response.result)
         )
 
@@ -56,7 +60,18 @@ class PlacementManagerProxy extends EchoJsonController
         @get_result({command: "get_swap_context_keys"}, on_recv)
 
     get_swap_context: (on_recv, outer_i, inner_i=0) ->
-        @get_result({command: "get_swap_context", args: [outer_i, inner_i]}, on_recv)
+        command_dict =
+            command: "get_swap_context_infos"
+            args: [outer_i, inner_i]
+        console.log('get_swap_context', outer_i: outer_i, inner_i: inner_i)
+        @get_placement(((placement) =>
+            @get_result(command_dict, (swap_infos) ->
+                swap_context = new SwapContext(placement)
+                for s in swap_infos
+                    swap_context.process_swap(s)
+                on_recv(swap_context)
+            )
+        ), outer_i, inner_i)
 
 
 @Placement =   Placement
