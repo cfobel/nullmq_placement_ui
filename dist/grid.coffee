@@ -310,7 +310,8 @@ class PlacementGrid
     highlight_area_ranges: (area_ranges) ->
         area_ranges = @area_ranges.selectAll('.area_range')
             .data(area_ranges)
-          .enter().append("svg:rect")
+        area_ranges.exit().remove()
+        area_ranges.enter().append("svg:rect")
             .attr("class", "area_range")
             .attr("width", (d) => d.second_extent * @scale.x(1))
             .attr("height", (d) => d.first_extent * @scale.y(@dims.y.max))
@@ -482,6 +483,10 @@ class AreaRange
 
     contains: (point) ->
         return (point.x >= @first_index and point.x < @first_index + @first_extent and point.y >= @second_index and point.y < @second_index + @second_extent)
+
+
+AreaRange.from_array = (indices) ->
+    new AreaRange(indices[0], indices[1], indices[2], indices[3])
 
 
 @PlacementGrid = PlacementGrid

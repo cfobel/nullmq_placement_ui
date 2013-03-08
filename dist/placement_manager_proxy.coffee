@@ -73,6 +73,9 @@ class PlacementManagerProxy extends EchoJsonController
             )
         ), outer_i, inner_i)
 
+    get_place_config: (on_recv, outer_i, inner_i=0) ->
+        @get_result({command: "get_place_config", args: [outer_i, inner_i]}, on_recv)
+
 
 @Placement =   Placement
 @PlacementManagerProxy =  PlacementManagerProxy
