@@ -147,11 +147,6 @@ class SwapContext
             .append("svg:path")
             .attr("class", "swap_link")
             .attr("id", (d) -> "id_swap_link_" + d.swap_i)
-            .style("fill", "none")
-            .style("pointer-events", "none")
-            .style("stroke", "none")
-            .style("stroke-width", 1.5)
-            .style("opacity", 0)
         swap_links.exit().remove()
 
     from_ids: (swap_dict, only_master=false) ->
@@ -185,24 +180,19 @@ class SwapContext
         swap_links = placement_grid.grid.selectAll(".swap_link")
         curve = new coffee_helpers.Curve()
         curve.translate(placement_grid.cell_center)
-        swap_links.style("stroke-width", 1)
-            .style("opacity", (d) ->
+        swap_links.each((d) ->
+                d3.select(this).classed('non_master', false)
+                    .classed('accepted', false)
+                    .classed('non_participate', false)
+                    .classed('skipped', false)
                 if not d.swap_config.master and d.swap_config.participate
-                    return 0.0
+                    d3.select(this).classed('non_master', true)
                 else if d.swap_result.swap_accepted
-                    return 0.9
+                    d3.select(this).classed('accepted', true)
                 else if not d.swap_config.participate
-                    return 0.35
+                    d3.select(this).classed('non_participate', true)
                 else
-                    return 0.8
-            )
-            .style("stroke", (d) ->
-                if d.swap_result.swap_accepted
-                    return "green"
-                else if not d.swap_config.participate
-                    return "red"
-                else
-                    return "gold"
+                    d3.select(this).classed('skipped', true)
             )
         swap_links.attr("d", (d) =>
                 from_coords = d.swap_config.coords.from_

@@ -77,6 +77,28 @@
     float: left;
 }
 
+.swap_link {
+    fill: none;
+    pointer-events: none;
+    stroke-width: 1px;
+    opacity: 0;
+}
+
+.swap_link.accepted {
+    opacity: 0.9;
+    stroke: green;
+}
+
+.swap_link.non_participate {
+    opacity: 0.35;
+    stroke: red;
+}
+
+.swap_link.skipped {
+    opacity: 0.8;
+    stroke: gold;
+}
+
 #id_controllers_tbody  {
     font-size: 0.9em;
 }
