@@ -1,4 +1,4 @@
-class PlacementComparator
+class BasePlacementComparator
     constructor: (grid_a_container, grid_b_container) ->
         @grid_containers = 
             a: grid_a_container
@@ -17,6 +17,20 @@ class PlacementComparator
         @grids =
             a: null
             b: null
+
+    reset_grid_a: (placement) =>
+        @grid_containers.a.html('')
+        @grids.a = new PlacementGrid(@grid_containers.a.attr("id"))
+        @_connect_grid_signals(@grids.a)
+        if @grids.b?
+            @grids.b.set_zoom([0, 0], 1, false)
+
+    reset_grid_b: (placement) =>
+        @grid_containers.b.html('')
+        @grids.b = new PlacementGrid(@grid_containers.b.attr("id"))
+        @_connect_grid_signals(@grids.b)
+        if @grids.a?
+            @grids.a.set_zoom([0, 0], 1, false)
 
     compare: () =>
         if not @grids.a? or not @grids.b?
@@ -56,20 +70,6 @@ class PlacementComparator
         # Return d3 selection
         d3.selectAll(block_rects)
 
-    reset_grid_a: (place_context) =>
-        @grid_containers.a.html('')
-        @grids.a = new ControllerPlacementGrid(place_context, @grid_containers.a.attr("id"))
-        @_connect_grid_signals(@grids.a)
-        if @grids.b?
-            @grids.b.set_zoom([0, 0], 1, false)
-
-    reset_grid_b: (place_context) =>
-        @grid_containers.b.html('')
-        @grids.b = new ControllerPlacementGrid(place_context, @grid_containers.b.attr("id"))
-        @_connect_grid_signals(@grids.b)
-        if @grids.a?
-            @grids.a.set_zoom([0, 0], 1, false)
-
     set_block_positions: (grid, block_positions) ->
         grid.set_raw_block_positions(block_positions)
 
@@ -90,27 +90,19 @@ class PlacementComparator
                 if e.grid == @grids.b
                     e.block.rect(@grids.a)
                         .classed('hovered', true)
-                        .classed('net_hovered', true)
-                    @grids.a.set_selected_nets()
             if @grids.b?
                 @grids.b.update_header(e.block)
                 if e.grid == @grids.a
                     e.block.rect(@grids.b)
                         .classed('hovered', true)
-                        .classed('net_hovered', true)
-                    @grids.b.set_selected_nets()
         )
         $(grid).on("block_mouseout", (e) =>
             if @grids.b? and e.grid == @grids.a
                 e.block.rect(@grids.b)
                     .classed('hovered', false)
-                    .classed('net_hovered', false)
-                @grids.b.set_selected_nets()
             if @grids.a? and e.grid == @grids.b
                 e.block.rect(@grids.a)
                     .classed('hovered', false)
-                    .classed('net_hovered', false)
-                @grids.a.set_selected_nets()
         )
         $(grid).on("block_click", (e) =>
             @select_blocks_by_id([e.block.id]).classed('selected', (d) ->
@@ -154,9 +146,6 @@ class PlacementComparator
         ids = if @grids.a? then @grids.a.selected_block_ids() else []
         ids = ids.concat(if @grids.b? then @grids.b.selected_block_ids() else [])
         @select_blocks_by_id(ids).classed('selected', true)
-        for label in ['a', 'b']
-            if @grids[label]?
-                @grids[label].set_selected_nets()
 
     # UI update
     highlight_comparison: () =>
@@ -172,4 +161,63 @@ class PlacementComparator
             (->)
 
 
+class PlacementComparator extends BasePlacementComparator
+    ###
+    # This class requires a `PlaceContext` to be provided when resetting a
+    # grid.  Each `PlaceContext` contains the netlist info required to look-up
+    # block-net connectivity information.  This place context is then passed
+    # along to create a `ControllerPlacementGrid` instance for the
+    # corresponding grid, rather than a `PlacementGrid`.  The
+    # `ControllerPlacementGrid` uses the place context to highlight the nets
+    # connected to any blocks in the grid that are either selected or hovered.
+    ###
+    reset_grid_a: (place_context) =>
+        @grid_containers.a.html('')
+        @grids.a = new ControllerPlacementGrid(place_context, @grid_containers.a.attr("id"))
+        @_connect_grid_signals(@grids.a)
+        if @grids.b?
+            @grids.b.set_zoom([0, 0], 1, false)
+
+    reset_grid_b: (place_context) =>
+        @grid_containers.b.html('')
+        @grids.b = new ControllerPlacementGrid(place_context, @grid_containers.b.attr("id"))
+        @_connect_grid_signals(@grids.b)
+        if @grids.a?
+            @grids.a.set_zoom([0, 0], 1, false)
+
+    _connect_grid_signals: (grid) =>
+        super grid
+
+        # Connect signals for updating net-related hover activity.
+        $(grid).on("block_mouseover", (e) =>
+            if @grids.a?
+                if e.grid == @grids.b
+                    e.block.rect(@grids.a)
+                        .classed('net_hovered', true)
+                    @grids.a.set_selected_nets()
+            if @grids.b?
+                if e.grid == @grids.a
+                    e.block.rect(@grids.b)
+                        .classed('net_hovered', true)
+                    @grids.b.set_selected_nets()
+        )
+        $(grid).on("block_mouseout", (e) =>
+            if @grids.b? and e.grid == @grids.a
+                e.block.rect(@grids.b)
+                    .classed('net_hovered', false)
+                @grids.b.set_selected_nets()
+            if @grids.a? and e.grid == @grids.b
+                e.block.rect(@grids.a)
+                    .classed('net_hovered', false)
+                @grids.a.set_selected_nets()
+        )
+
+    update_selected: () =>
+        super()
+
+        for label in ['a', 'b']
+            if @grids[label]?
+                @grids[label].set_selected_nets()
+
+@BasePlacementComparator = BasePlacementComparator
 @PlacementComparator = PlacementComparator

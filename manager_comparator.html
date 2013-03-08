@@ -1,0 +1,241 @@
+<!DOCTYPE html PUBLIC "-/>
+<html lang="en">
+<head>
+<title>NullMQ placement server example</title> <link href="/dist/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+<link href="/dist/bootstrap/css/bootstrap-responsive.css" rel="stylesheet">
+<link href="/dist/lib/jquery-ui.css" rel="stylesheet">
+<script type="text/javascript" src="/dist/lib/jquery-latest.js"></script>
+<script type="text/javascript" src="/dist/lib/jquery-ui.js"></script>
+<script type="text/javascript" src="/dist/lib/coffee-script.js"></script>
+<script type="text/javascript" src="/dist/lib/d3.v2.js"></script>
+<script type="text/javascript" src="/dist/lib/underscore-min.js"></script>
+<script type="text/javascript" src="/dist/lib/mousetrap.min.js"></script>
+<script type="text/javascript" src="/dist/lib/stomp.js"></script>
+<script type="text/javascript" src="/dist/lib/nullmq.js"></script>
+<script type="text/javascript" src="/dist/lib/sylvester.js"></script>
+<script type="text/javascript" src="/dist/lib/glUtils.js"></script>
+<script type="text/javascript" src="/dist/bootstrap/js/bootstrap.min.js"></script>
+<script type="text/javascript" src="/dist/bootstrap/js/bootstrapx-clickover.js"></script>
+<script type="text/javascript" src="/dist/lib/bootstrap-contextmenu.js"></script>
+<style  type="text/css">
+.improving {
+    background-color: #D5ECBF !important;
+    border-color: #D2E6AB !important;
+    color: #669533 !important;
+}
+.non_improving {
+    background-color: #F2BDB1 !important;
+    border-color: #F0A5A4 !important;
+    color: #BD4247 !important;
+}
+
+.grid_background {
+    fill: white;
+}
+
+.net_link {
+    stroke: black;
+    stroke-width: 1.5px;
+    stroke-opacity: 0.6;
+}
+
+.net_group .center_of_gravity {
+    fill: steelblue;
+    stroke: white;
+    stroke-width: 2;
+    opacity: 0.9;
+}
+
+.block {
+    opacity: 0.65;
+    fill: grey;
+    stroke: black;
+}
+
+.block.same {
+    fill: limegreen;
+}
+
+.block.different {
+    fill: darkorange;
+}
+
+.block.selected {
+    stroke-width: 2px;
+    opacity: 1.0;
+}
+
+.block.net_hovered {
+    opacity: 1.0;
+}
+
+.block.hovered {
+    opacity: 1.0;
+}
+
+.actions div {
+    float: left;
+}
+
+#id_controllers_tbody  {
+    font-size: 0.9em;
+}
+</style>
+</head>
+<body>
+<div class="container-fluid">
+
+<section class="settings">
+  <div class="row-fluid">
+    <div class="form-inline">
+    <fieldset>
+        <label>NullMQ-to-ZeroMQ bridge URI</label>
+        <select id="id_nullmq_zmq_bridge">
+          <option value="ws://localhost:9000" default>localhost:9000</option>
+          <option value="ws://maeby.fobel.net:9000">maeby.fobel.net:9000</option>
+        </select>
+        <button name="set_zmq_bridge" id="id_set_zmq_bridge">Connect</button>
+
+        <label>Add placement manager:</label>
+        <input id="id_manager_uri" type="text" style="width: 150px;" value="tcp://maeby.fobel.net:12346">
+        <button name="add_manager" id="id_add_manager">Add</button>
+        <button name="go" id="id_go">Go</button>
+    </fieldset>
+    </div>
+  </div>
+</section>
+
+<section class="controllers">
+ <div class="row-fluid">
+  <table class="table table-striped">
+   <tbody id="id_controllers_tbody">
+    <tr>
+     <th id="id_select">&nbsp;</th>
+     <th id="id_controller_id_header">id</th>
+     <th id="id_modifier_class">modifier</th>
+     <th id="id_seed">seed</th>
+     <th id="id_netlist_header">net</th>
+     <!--<th id="id_arch_header">arch</th>-->
+     <th id="id_iteration_header">iteration</th>
+     <th id="id_rep_uri_header">rep</th>
+     <th id="id_pub_uri_header">pub</th>
+     <th id="id_actions_header">actions</th>
+    </tr>
+   </tbody>
+ </table>
+ </div>
+</section>
+<section class="placements">
+ <div class="row-fluid">
+<div id="id_placement_a" class="span5"></div>
+<div class="span2"></div>
+<div id="id_placement_b" class="span5"></div>
+</div>
+</section>
+<section class="template">
+ <table class="invisible" >
+ <!-- The contents of the tag are used as a template to format an info table
+   for a block -->
+     <tbody><tr id="id_controller_row_template">
+       <th class="select" title="select"><input type="checkbox" data-id="{{ process_id }}"></th>
+       <th class="controller_id" title="{{ process_id }}">{{ process_id_short }}</th>
+       <td class="modifier_class">{{ controller.config.modifier_class }}</td>
+       <td class="seed">{{ seed }}</td>
+       <td class="netlist" title="{{ controller.config.netlist_path }}">{{ netlist_path_short }}</td>
+       <!--<td class="arch" title="{{ controller.config.arch_path }}">{{ arch_path_short }}</td>-->
+       <td class="iteration"></td>
+       <td class="rep_uri">{{ controller.rep_uri }}</td>
+       <td class="pub_uri">{{ controller.pub_uri }}</td>
+       <td class="actions">
+          <div class="action_iterate">
+            <button class="btn btn-mini">iterate</button>
+          </div>
+          <div class="action_kill">
+            <button class="btn btn-mini btn-danger">kill</button>
+          </div>
+          <div class="action_placement_a">
+            <button class="btn btn-mini btn-info">a</button>
+          </div>
+          <div class="action_placement_b">
+            <button class="btn btn-mini btn-success">b</button>
+          </div>
+       </td>
+     </tr></tbody>
+ </table>
+ <div class="invisible" >
+ <!-- The contents of the tag are used as a template to format an info table
+   for a block -->
+    <div class="grid_header_template">
+        <table>
+            <tbody>
+            <tr>
+                <td>
+                    {{ block.id }}
+                </td>
+                <td>
+                    ({{ position.x }}, {{ position.y }})
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+ </div>
+</section>
+
+<!--<script type="text/javascript" src="/dist/test.js"></script>-->
+<script type="text/coffeescript" src="/dist/lib/mixin.coffee"></script>
+<script type="text/coffeescript" src="/dist/echo_controller.coffee"></script>
+<script type="text/coffeescript" src="/dist/swap_context.coffee"></script>
+<script type="text/coffeescript" src="/dist/placement_manager_proxy.coffee"></script>
+<script type="text/coffeescript" src="/dist/placement_comparator.coffee"></script>
+<script type="text/coffeescript" src="/dist/grid.coffee"></script>
+<script type="text/coffeescript" src="/dist/coffee_helpers.coffee"></script>
+<script type="text/coffeescript">
+    @seed_input = $('#id_seed')
+    @bridge_uri_selector = $('#id_nullmq_zmq_bridge option:selected')
+    @manager_uri_input = $('#id_manager_uri')
+
+    @zmq_context = new nullmq.Context(@bridge_uri_selector.val())
+    @placement_managers = {}
+
+    @placement_comparator = new BasePlacementComparator(
+        d3.select("#id_placement_a"),
+        d3.select("#id_placement_b")
+    )
+
+    $("#id_set_zmq_bridge").click(() =>
+        @zmq_context = new nullmq.Context(@bridge_uri_selector.val())
+    )
+
+    $("#id_add_manager").click(() =>
+        uri = @manager_uri_input.val()
+        @placement_managers[uri] = new PlacementManagerProxy(@zmq_context, uri)
+    )
+
+    $("#id_go").click(() =>
+        uri = 'tcp://maeby.fobel.net:12346'
+        @placement_managers[uri] = new PlacementManagerProxy(@zmq_context, uri)
+        p = @placement_managers[Object.keys(@placement_managers)[0]]
+
+        p.get_swap_context_keys((swap_keys) =>
+            p.get_placement(((placement) =>
+                @placement_comparator.reset_grid_a()
+                @placement_comparator.grids.a.set_raw_block_positions(placement.block_positions)
+                console.log('Request swap context', swap_keys: swap_keys[0])
+                p.get_swap_context(((swap_context_raw) =>
+                    console.log('Received swap context', swap_keys: swap_keys[0])
+                    s = new SwapContext(placement)
+                    $().extend(s, swap_context_raw)
+                    s.update_block_formats(@placement_comparator.grids.a)
+                    s.set_swap_link_data(@placement_comparator.grids.a)
+                    s.update_link_formats(@placement_comparator.grids.a)
+                    @placement_comparator.swap_contexts = {}
+                    @placement_comparator.swap_contexts.a = s
+                ), swap_keys[0][0], swap_keys[0][1])
+            ), swap_keys[0][0], swap_keys[0][1])
+        )
+    )
+
+</script>
+</body>
+</html>
