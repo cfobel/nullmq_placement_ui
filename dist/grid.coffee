@@ -121,12 +121,10 @@ class PlacementGrid
         @io_fill_color = @colors(1)
         @clb_fill_color = @colors(9)
         @_selected_blocks = {}
-        _.templateSettings =
-          interpolate: /\{\{(.+?)\}\}/g
-        @grid_header_template_text = d3.select('.grid_header_template').html()
-        @grid_header_template = _.template(@grid_header_template_text)
         @block_positions = null
         @swap_infos = new Array()
+
+        @templates = @get_templates()
 
         obj = @
 
@@ -148,6 +146,15 @@ class PlacementGrid
                 $(obj).trigger(response)
         )
 
+    get_templates: () ->
+        _.templateSettings = interpolate: /\{\{(.+?)\}\}/g
+        template_texts =
+            grid_header: d3.select('.grid_header_template').html()
+        templates = {}
+        for k, v of template_texts
+            templates[k] = _.template(v)
+        return templates
+
     update_header: (block) =>
         obj = @
         @header.datum(block)
@@ -156,7 +163,7 @@ class PlacementGrid
                     template_context =
                         block: d
                         position: obj.block_positions[d.id]
-                    obj.grid_header_template(template_context)
+                    obj.templates.grid_header(template_context)
                 catch e
                     @_last_obj =
                         data: obj
