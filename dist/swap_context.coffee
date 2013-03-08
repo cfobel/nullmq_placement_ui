@@ -158,22 +158,19 @@ class SwapContext
     accepted_count: () => Object.keys(@accepted).length
 
     update_block_formats: (placement_grid) ->
-        g = placement_grid.grid
-        g.selectAll(".block")
-            .style("stroke-width", (d) -> if placement_grid.selected(d.block_id) then 2 else 1)
-            .style("fill-opacity", (d) -> if placement_grid.selected(d.block_id) then 1.0 else 0.5)
-
-        colorize = (block_ids, fill_color, opacity=null) =>
+        colorize = (block_ids, classes) =>
             if block_ids.length <= 0
                 return
-            g.selectAll(@block_element_classes(block_ids).join(", "))
-                .style("fill", fill_color)
-                .style("opacity", opacity ? 1.0)
-        colorize(@from_ids(@not_participated), "red", 0.5)
-        colorize(@to_ids(@skipped, true), "yellow")
-        colorize(@from_ids(@skipped, true), "darkorange")
-        colorize(@from_ids(@accepted, true), "darkgreen")
-        colorize(@to_ids(@accepted, true), "limegreen")
+            g = placement_grid.grid
+            block_elements = g.selectAll(@block_element_classes(block_ids).join(", "))
+            for class_ in classes
+                block_elements.classed(class_, true)
+
+        colorize(@from_ids(@not_participated), ["swap_block", "master", "non_participate"])
+        colorize(@to_ids(@skipped, true), ["swap_block", "non_master", "skipped"])
+        colorize(@from_ids(@skipped, true), ["swap_block", "master", "skipped"])
+        colorize(@from_ids(@accepted, true), ["swap_block", "master", "accepted"])
+        colorize(@to_ids(@accepted, true), ["swap_block", "non_master", "accepted"])
 
     update_link_formats: (placement_grid) ->
         # Update the style and end-point locations for each swap link.

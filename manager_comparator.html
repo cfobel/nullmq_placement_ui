@@ -60,21 +60,33 @@
     fill: darkorange;
 }
 
-.block.selected {
-    stroke-width: 2px;
-    opacity: 1.0;
-}
-
-.block.net_hovered {
-    opacity: 1.0;
-}
-
-.block.hovered {
-    opacity: 1.0;
-}
-
 .actions div {
     float: left;
+}
+
+.block.swap_block.master.non_participate {
+    fill: red;
+    opacity: 0.5;
+}
+
+.block.swap_block.master.non_participate.hovered {
+    opacity: 1.0;
+}
+
+.block.swap_block.master.skipped {
+    fill: darkorange;
+}
+
+.block.swap_block.non_master.skipped {
+    fill: yellow;
+}
+
+.block.swap_block.master.accepted {
+    fill: limegreen;
+}
+
+.block.swap_block.non_master.accepted {
+    fill: darkgreen;
 }
 
 .swap_link {
@@ -97,6 +109,20 @@
 .swap_link.skipped {
     opacity: 0.8;
     stroke: gold;
+}
+
+/* Dynamic styles */
+.block.selected {
+    stroke-width: 2px;
+    opacity: 1.0;
+}
+
+.block.net_hovered {
+    opacity: 1.0;
+}
+
+.block.hovered {
+    opacity: 1.0;
 }
 
 #id_controllers_tbody  {
