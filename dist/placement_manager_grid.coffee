@@ -8,8 +8,13 @@ class PlacementManagerGrid extends PlacementGrid
             .attr('class', 'manager_header')
             .html(@templates.manager_header())
 
-        @manager_header_element = $(obj.manager_header[0][0])
+        @manager_header_element = $(obj.manager_header[0])
 
+        @manager_header.select('.show_swaps')
+            .on('click', () ->
+                console.log('[show_swaps click]')
+                obj.swaps_show($(this).prop('checked'))
+            )
         @manager_header.select('.apply_swaps')
             .on('click', () ->
                 console.log('[apply_swaps click]')
@@ -42,24 +47,22 @@ class PlacementManagerGrid extends PlacementGrid
             if e.block_positions?
                 block_infos = translate_block_positions(e.block_positions)
                 obj._placements[e.key] = block_infos
-                obj.swaps_apply(false)
+                for action in ['apply', 'show']
+                    obj['swaps_' + action](false)
+                    obj.manager_header_element.find('.' + action + '_swaps')
+                        .prop('checked', false)
+                        .prop('disabled', true)
         )
 
         $(obj).on('swap_context_selected', (e) ->
             if e.swap_context?
-                obj.manager_header_element.find('.apply_swaps').prop('checked', false)
-                console.log('[swap_context_selected]', obj.manager_header_element.find('.apply_swaps').prop('checked'))
-                s = e.swap_context
-                s.update_block_formats(obj)
-                s.set_swap_link_data(obj)
-                s.update_link_formats(obj)
-                obj._last_swap_context = s
-                obj._swap_contexts[e.key] = s
-        )
-
-        $(obj).on('swaps_apply_status', (e) ->
-            console.log('[swaps_apply_status]', e)
-            obj.manager_header_element.find('.apply_swaps').prop('checked', e.state ? false)
+                obj._swap_contexts[e.key] = e.swap_context
+                obj.swaps_show(true)
+                obj.manager_header_element.find('.show_swaps')
+                    .prop('checked', true)
+                    .prop('disabled', false)
+                obj.manager_header_element.find('.apply_swaps')
+                    .prop('disabled', false)
         )
 
         @refresh_keys()
@@ -166,7 +169,7 @@ class PlacementManagerGrid extends PlacementGrid
             ), key.outer_i, key.inner_i ? 0
         )
 
-    swaps_show: (state) ->
+    swaps_show: (state) =>
         ###
         # state=true (false->true)
         #
@@ -180,6 +183,28 @@ class PlacementManagerGrid extends PlacementGrid
         #  * Remove all swap-related block formatting
         #  * Remove all swap-link elements
         ###
+        @swap_links_show(state)
+        @swap_blocks_show(state)
+
+    swap_blocks_show: (state) =>
+        obj = @
+        if @selected_key? and @_swap_contexts[@selected_key]?
+            s = @_swap_contexts[@selected_key]
+            if state
+                s.update_block_formats(obj)
+            else
+                s.clear_classes(obj)
+
+    swap_links_show: (state) =>
+        obj = @
+        if @selected_key?
+            if state
+                s = @_swap_contexts[@selected_key]
+                s.update_block_formats(obj)
+                s.set_swap_link_data(obj)
+                s.update_link_formats(obj)
+            else
+                obj.grid_container.selectAll('.swap_link').remove()
 
     swaps_apply: (state) =>
         ###

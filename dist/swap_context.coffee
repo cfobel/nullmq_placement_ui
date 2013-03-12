@@ -183,18 +183,20 @@ class SwapContext
                 block_elements.classed(class_, true)
             for class_ in false_classes
                 block_elements.classed(class_, false)
-
-        g = placement_grid.grid
-        swap_blocks = g.selectAll('.swap_block')
-
-        for c in ['master', 'non_master', 'non_participate', 'accepted', 'skipped']
-            swap_blocks.classed(c, false)
+        @clear_classes(placement_grid)
 
         colorize(@from_ids(@not_participated), ['swap_block', 'master', 'non_participate'])
         colorize(@to_ids(@skipped, true), ["swap_block", "non_master", "skipped"])
         colorize(@from_ids(@skipped, true), ["swap_block", "master", "skipped"])
         colorize(@from_ids(@accepted, true), ["swap_block", "master", "accepted"])
         colorize(@to_ids(@accepted, true), ["swap_block", "non_master", "accepted"])
+
+    clear_classes: (placement_grid, selection=null) =>
+        if not (selection?)
+            selection = placement_grid.grid.selectAll('.swap_block')
+
+        for c in ['master', 'non_master', 'non_participate', 'accepted', 'skipped']
+            selection.classed(c, false)
 
     update_link_formats: (placement_grid) ->
         # Update the style and end-point locations for each swap link.
