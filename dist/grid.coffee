@@ -57,6 +57,19 @@ class Curve
         return path_text
 
 
+translate_block_positions = (block_positions) ->
+    data = new Array()
+    for position, i in block_positions
+        item =
+            block_id: i
+            x: position[0]
+            y: position[1]
+            z: position[2]
+            selected: false
+        data.push(item)
+    return data
+
+
 class PlacementGrid
     constructor: (@id, @width=null) ->
         @zoom = d3.behavior.zoom()
@@ -155,14 +168,14 @@ class PlacementGrid
             templates[k] = _.template(v)
         return templates
 
+    template_context: (d) => block: d, position: @block_positions[d.id]
+
     update_header: (block) =>
         obj = @
         @header.datum(block)
             .html((d) ->
                 try
-                    template_context =
-                        block: d
-                        position: obj.block_positions[d.id]
+                    template_context = obj.template_context(d)
                     obj.templates.grid_header(template_context)
                 catch e
                     @_last_obj =
@@ -191,32 +204,6 @@ class PlacementGrid
         window.location.hash = transform_str
 
     selected_fill_color: () -> @colors(@selected_fill_color_num)
-
-    translate_block_positions: (block_positions) ->
-        @_last_translated_positions = block_positions
-        data = new Array()
-        for position, i in block_positions
-            item =
-                block_id: i
-                x: position[0]
-                y: position[1]
-                z: position[2]
-                selected: false
-                fill_opacity: 0.5
-                stroke_width: 1
-            data.push(item)
-        @dims.x.max = Math.max(d3.max(item.x for item in data), @dims.x.max)
-        @dims.x.min = Math.min(d3.min(item.x for item in data), @dims.x.min)
-        @dims.y.max = Math.max(d3.max(item.y for item in data), @dims.y.max)
-        @dims.y.min = Math.min(d3.min(item.y for item in data), @dims.y.min)
-        for item in data
-            if item.x < @dims.x.min + 1 or item.x > @dims.x.max - 1 or item.y < @dims.y.min + 1 or item.y > @dims.y.max - 1
-                item.io = true
-            else
-                item.io = false
-        @scale.x.domain([@dims.x.min, @dims.x.max + 1]).range([0, @width])
-        @scale.y.domain([@dims.y.min, @dims.y.max + 1]).range([@width, 0])
-        return data
 
     cell_width: () -> @scale.x(1)
     # Scale the height of each cell to the grid vertical height divided by the
@@ -258,9 +245,17 @@ class PlacementGrid
         infos.html((d) -> placement_grid.template($().extend({net_ids: ''}, d)))
 
     set_raw_block_positions: (raw_block_positions) ->
-        @set_block_positions(@translate_block_positions(raw_block_positions))
+        @set_block_positions(translate_block_positions(raw_block_positions))
 
     set_block_positions: (block_positions) ->
+        @dims.x.max = Math.max(d3.max(item.x for item in block_positions), @dims.x.max)
+        @dims.x.min = Math.min(d3.min(item.x for item in block_positions), @dims.x.min)
+        @dims.y.max = Math.max(d3.max(item.y for item in block_positions), @dims.y.max)
+        @dims.y.min = Math.min(d3.min(item.y for item in block_positions), @dims.y.min)
+
+        @scale.x.domain([@dims.x.min, @dims.x.max + 1]).range([0, @width])
+        @scale.y.domain([@dims.y.min, @dims.y.max + 1]).range([@width, 0])
+
         @block_positions = block_positions
         @update_cell_data()
         @update_cell_positions()
@@ -500,3 +495,4 @@ AreaRange.from_array = (indices) ->
 @ControllerPlacementGrid = ControllerPlacementGrid
 @AreaRange = AreaRange
 @Block = Block
+@translate_block_positions = translate_block_positions

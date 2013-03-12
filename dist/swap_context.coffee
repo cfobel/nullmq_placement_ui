@@ -15,6 +15,7 @@ class SwapContext
         # Make a copy of the current block positions, which will be updated to
         # reflect the new positions of blocks involved in accepted swaps.
         @block_positions = @placement.block_positions
+        @block_infos = translate_block_positions(@block_positions)
         @all = []
         @participated = {}
         @not_participated = {}
@@ -23,25 +24,27 @@ class SwapContext
         @by_from_block_id = {}
         @by_to_block_id = {}
 
-    apply_swaps: (block_positions=null) ->
-        if block_positions == null
-            block_positions = @block_positions
+    apply_swaps: (block_infos=null) ->
+        if block_infos == null
+            block_infos = @block_infos
         # Make a copy of the block positions
-        block_positions = $.extend(true, [], block_positions)
-        console.log('apply_swaps', block_positions)
+        block_infos = $.extend(true, [], block_infos)
+        #console.log('apply_swaps', block_infos)
 
         # Update the block positions array based on the accepted swaps in the
         # current context.
         for swap_i,swap_info of @accepted
             if swap_info.swap_config.master > 0
                 if swap_info.swap_config.ids.from_ >= 0
-                    console.log('swap_info.swap_config.ids.from_', swap_info.swap_config.ids.from_)
-                    from_d = block_positions[+swap_info.swap_config.ids.from_]
-                    [from_d.x, from_d.y] = swap_info.swap_config.coords.to
+                    #console.log('swap_info.swap_config.ids.from_', swap_info.swap_config.ids.from_)
+                    from_d = block_infos[+swap_info.swap_config.ids.from_]
+                    from_d.x = swap_info.swap_config.coords.to.x
+                    from_d.y = swap_info.swap_config.coords.to.y
                 if swap_info.swap_config.ids.to >= 0
-                    to_d = block_positions[+swap_info.swap_config.ids.to]
-                    [to_d.x, to_d.y] = swap_info.swap_config.coords.from_
-        return block_positions
+                    to_d = block_infos[+swap_info.swap_config.ids.to]
+                    to_d.x = swap_info.swap_config.coords.from_.x
+                    to_d.y = swap_info.swap_config.coords.from_.y
+        return block_infos
 
     #placement_with_swaps_applied: () =>
         #options =
@@ -158,15 +161,36 @@ class SwapContext
     accepted_count: () => Object.keys(@accepted).length
 
     update_block_formats: (placement_grid) ->
-        colorize = (block_ids, classes) =>
+        ###
+        # Possible class combinations:
+        #   master, non_participate
+        #   non_master, non_participate
+        #
+        #   master, skipped
+        #   non_master, skipped
+        #
+        #   master, accepted
+        #   non_master, accepted
+        #
+        # However, note that 
+        ###
+        colorize = (block_ids, true_classes=[], false_classes=[]) =>
             if block_ids.length <= 0
                 return
             g = placement_grid.grid
             block_elements = g.selectAll(@block_element_classes(block_ids).join(", "))
-            for class_ in classes
+            for class_ in true_classes
                 block_elements.classed(class_, true)
+            for class_ in false_classes
+                block_elements.classed(class_, false)
 
-        colorize(@from_ids(@not_participated), ["swap_block", "master", "non_participate"])
+        g = placement_grid.grid
+        swap_blocks = g.selectAll('.swap_block')
+
+        for c in ['master', 'non_master', 'non_participate', 'accepted', 'skipped']
+            swap_blocks.classed(c, false)
+
+        colorize(@from_ids(@not_participated), ['swap_block', 'master', 'non_participate'])
         colorize(@to_ids(@skipped, true), ["swap_block", "non_master", "skipped"])
         colorize(@from_ids(@skipped, true), ["swap_block", "master", "skipped"])
         colorize(@from_ids(@accepted, true), ["swap_block", "master", "accepted"])
@@ -178,13 +202,18 @@ class SwapContext
         curve = new coffee_helpers.Curve()
         curve.translate(placement_grid.cell_center)
         swap_links.each((d) ->
-                d3.select(this).classed('non_master', false)
+                d3.select(this)
+                    .classed('non_master', false)
+                    .classed('master', false)
                     .classed('accepted', false)
                     .classed('non_participate', false)
                     .classed('skipped', false)
                 if not d.swap_config.master and d.swap_config.participate
                     d3.select(this).classed('non_master', true)
-                else if d.swap_result.swap_accepted
+                else
+                    d3.select(this).classed('master', true)
+
+                if d.swap_result.swap_accepted
                     d3.select(this).classed('accepted', true)
                 else if not d.swap_config.participate
                     d3.select(this).classed('non_participate', true)
@@ -218,20 +247,20 @@ class SwapContext
         # Return list of block positions (i.e., coordinates) for blocks that
         # are connected to the block with ID `block_id` and that were involved
         # involved in any swaps within the current swap context.
-        connected_blocks = [@block_positions[block_id]]
+        connected_blocks = [@block_infos[block_id]]
         if block_id of @by_from_block_id
             # Highlight any blocks that involve the current block as the `from`
             # block id
             for swap_info in @by_from_block_id[block_id]
                 if swap_info.swap_config.ids.to >= 0
-                    block = @block_positions[swap_info.swap_config.ids.to]
+                    block = @block_infos[swap_info.swap_config.ids.to]
                     connected_blocks.push(block)
         else if block_id of @by_to_block_id
             # Highlight any blocks that involve the current block as the `to`
             # block id
             for swap_info in @by_to_block_id[block_id]
                 if swap_info.swap_config.ids.to >= 0
-                    block = @block_positions[swap_info.swap_config.ids.from_]
+                    block = @block_infos[swap_info.swap_config.ids.from_]
                     connected_blocks.push(block)
         return _.uniq(connected_blocks)
 

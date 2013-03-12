@@ -97,17 +97,17 @@
     opacity: 0;
 }
 
-.swap_link.accepted {
+.swap_link.master.accepted {
     opacity: 0.9;
     stroke: green;
 }
 
-.swap_link.non_participate {
+.swap_link.master.non_participate {
     opacity: 0.35;
     stroke: red;
 }
 
-.swap_link.skipped {
+.swap_link.master.skipped {
     opacity: 0.8;
     stroke: gold;
 }
@@ -233,15 +233,21 @@
  <!-- The contents of the tag are used as a template to format an info table
    for a block -->
     <div class="placement_manager_grid_header_template">
-        <h3>Manager</h3>
         <table>
             <tbody>
             <tr>
                 <td>
-                    {{ block.id }}
+                    <h4>Placement Manager</h4>
                 </td>
                 <td>
-                    ({{ position.x }}, {{ position.y }})
+                    <select class="manager_key_options"></select>
+                </td>
+                <td>
+                    <button name="select_key" class="select_key">select</button>
+                    <button name="refresh_keys" class="refresh_keys">refresh</button>
+                    <label class="checkbox">
+                          <input class="apply_swaps" type="checkbox">apply swaps
+                    </label>
                 </td>
             </tr>
             </tbody>
@@ -286,26 +292,11 @@
     $("#id_go").click(() =>
         uri = 'tcp://maeby.fobel.net:12346'
         @placement_managers[uri] = new PlacementManagerProxy(@zmq_context, uri)
+        @placement_managers['placement manager 2'] = new PlacementManagerProxy(@zmq_context, uri)
         p = @placement_managers[Object.keys(@placement_managers)[0]]
-
-        p.get_swap_context_keys((swap_keys) =>
-            p.get_placement(((placement) =>
-                @placement_comparator.reset_grid_a(p)
-                @placement_comparator.grids.a.set_raw_block_positions(placement.block_positions)
-                console.log('Request swap context', swap_keys: swap_keys[0])
-                p.get_swap_context(((swap_context) =>
-                    console.log('Received swap context', swap_keys: swap_keys[0])
-                    s = swap_context
-                    s.update_block_formats(@placement_comparator.grids.a)
-                    s.set_swap_link_data(@placement_comparator.grids.a)
-                    s.update_link_formats(@placement_comparator.grids.a)
-                    @placement_comparator.swap_contexts = {}
-                    @placement_comparator.swap_contexts.a = s
-                ), swap_keys[0][0], swap_keys[0][1])
-            ), swap_keys[0][0], swap_keys[0][1])
-        )
+        @placement_comparator.reset_grid_a(@placement_managers[uri])
+        @placement_comparator.reset_grid_b(@placement_managers['placement manager 2'])
     )
-
 </script>
 </body>
 </html>
