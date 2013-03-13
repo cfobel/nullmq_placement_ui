@@ -1,7 +1,7 @@
 class Block
     constructor: (@id) ->
     rect_id: () => "block_" + @id
-    rect: (grid) => d3.select("#" + grid.grid_container.attr("id") + " ." + @rect_id())
+    rect: (grid) => grid.grid_container.select(" ." + @rect_id())
 
 
 class Net
@@ -71,9 +71,9 @@ translate_block_positions = (block_positions) ->
 
 
 class PlacementGrid
-    constructor: (@id, @width=null) ->
+    constructor: (@grid_container, @width=null) ->
         @zoom = d3.behavior.zoom()
-        @grid_container = d3.select('#' + @id)
+        console.log('[PlacementGrid.constructor]', @grid_container)
         @header = @grid_container.append('div')
             .attr('class', 'grid_header')
         if not @width?
@@ -196,7 +196,7 @@ class PlacementGrid
         @grid.attr("transform", transform_str)
         if signal
             obj = @
-            $(obj).trigger(type: "zoom_updated", translate: translate, scale: scale)
+            $(obj).trigger(type: "zoom_updated", grid: obj, translate: translate, scale: scale)
 
     set_zoom_location: () =>
         transform_str = "translate(" + @zoom.translate() + ")" + " scale(" +
@@ -335,8 +335,8 @@ class PlacementGrid
 
 
 class ControllerPlacementGrid extends PlacementGrid
-    constructor: (@place_context, @id, @width=null) ->
-        super @id, @width
+    constructor: (@place_context, @grid_container, @width=null) ->
+        super @grid_container, @width
         @net_groups = @grid.append('svg:g')
             .attr("class", "net_groups")
         @nets = (@net_by_id(n) for n in [0..@place_context.net_to_block_ids.length - 1])

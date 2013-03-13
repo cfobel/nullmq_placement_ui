@@ -1,6 +1,6 @@
 class PlacementManagerGrid extends PlacementGrid
-    constructor: (@placement_manager, @id, @width=null) ->
-        super @id, @width
+    constructor: (@placement_manager, @grid_container, @width=null) ->
+        super @grid_container, @width
 
         obj = @
 
@@ -49,7 +49,11 @@ class PlacementManagerGrid extends PlacementGrid
         )
 
         $(obj).on('placement_selected', (e) ->
-            console.log('[placement_selected]', e)
+            if obj.selected_key?
+                key_str = obj.get_key_str(obj.selected_key)
+                current_option = placement_comparator.grids.a.manager_header_element.find('option[value="' + key_str + '"]')
+                console.log('[select option]', key_str, current_option)
+                current_option.prop('selected', true)
             if e.block_positions?
                 block_infos = translate_block_positions(e.block_positions)
                 obj._placements[e.key] = block_infos
@@ -85,6 +89,8 @@ class PlacementManagerGrid extends PlacementGrid
 
         @refresh_keys()
 
+    get_key_str: (key) => key.outer_i + ',' + key.inner_i
+
     get_templates: () ->
         templates = super()
         template_texts =
@@ -112,6 +118,7 @@ class PlacementManagerGrid extends PlacementGrid
                         data: obj
                         block: d
             )
+
     refresh_keys: () =>
         ###
         # Request placement keys
@@ -140,7 +147,8 @@ class PlacementManagerGrid extends PlacementGrid
                         if not obj.selected_key?
                             # No key is currently selected, so select the first
                             # one.
-                            key_data = outer_i: keys[0][0], inner_i: keys[0][1] ? 0
+                            key = _.last(keys)
+                            key_data = outer_i: key[0], inner_i: key[1] ? 0
                             obj.select_key(key_data)
                         return
                 console.log('[refresh_keys]', 'No new keys')

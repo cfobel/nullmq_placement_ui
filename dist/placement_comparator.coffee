@@ -1,14 +1,18 @@
 class BasePlacementComparator
-    constructor: (grid_a_container, grid_b_container) ->
-        @grid_containers = 
-            a: grid_a_container
-            b: grid_b_container
+    constructor: (a_container, b_container) ->
+        @containers =
+            a: a_container
+            b: b_container
+
+        @templates = @get_templates()
+
+        @grid_containers =
+            a: @containers.a.append('div').attr('class', 'grid_a')
+            b: @containers.b.append('div').attr('class', 'grid_b')
+
+        console.log('[BasePlacementComparator]', @grid_containers)
         @grid_containers.a.style("border", "solid #9e6ab8")
         @grid_containers.b.style("border", "solid #7bb33d")
-
-        @grid_container_ids = {}
-        for label, container of @grid_containers
-            @grid_container_ids[label] = container.attr("id")
 
         @opposite_labels =
             a: 'b'
@@ -18,16 +22,25 @@ class BasePlacementComparator
             a: null
             b: null
 
-    reset_grid_a: (placement) =>
+    get_templates: () ->
+        _.templateSettings = interpolate: /\{\{(.+?)\}\}/g
+        template_texts =
+            manager_selector: d3.select('.placement_manager_grid_selector_template').html()
+        templates = {}
+        for k, v of template_texts
+            templates[k] = _.template(v)
+        return templates
+
+    reset_grid_a: () =>
         @grid_containers.a.html('')
-        @grids.a = new PlacementGrid(@grid_containers.a.attr("id"))
+        @grids.a = new PlacementGrid(@grid_containers.a)
         @_connect_grid_signals(@grids.a)
         if @grids.b?
             @grids.b.set_zoom([0, 0], 1, false)
 
-    reset_grid_b: (placement) =>
+    reset_grid_b: () =>
         @grid_containers.b.html('')
-        @grids.b = new PlacementGrid(@grid_containers.b.attr("id"))
+        @grids.b = new PlacementGrid(@grid_containers.b)
         @_connect_grid_signals(@grids.b)
         if @grids.a?
             @grids.a.set_zoom([0, 0], 1, false)
@@ -114,11 +127,10 @@ class BasePlacementComparator
             # When zoom is updated on grid a, update grid b to match.
             # N.B. We must set `signal=false`, since otherwise we would end up
             # in an endless ping-pong back-and-forth between the two grids.
-            opposite_grids = {}
-            opposite_grids[@grid_container_ids.a] = @grids.b
-            opposite_grids[@grid_container_ids.b] = @grids.a
-            if opposite_grids[grid.id]?
-                opposite_grids[grid.id].set_zoom(e.translate, e.scale, false)
+            if @grids.a? and e.grid == @grids.a and @grids.b?
+                @grids.b.set_zoom(e.translate, e.scale, false)
+            else if @grids.b? and e.grid == @grids.b and @grids.a?
+                @grids.a.set_zoom(e.translate, e.scale, false)
         )
 
     block_emphasize: (grid, block) =>
@@ -173,14 +185,14 @@ class PlacementComparator extends BasePlacementComparator
     ###
     reset_grid_a: (place_context) =>
         @grid_containers.a.html('')
-        @grids.a = new ControllerPlacementGrid(place_context, @grid_containers.a.attr("id"))
+        @grids.a = new ControllerPlacementGrid(place_context, @grid_containers.a)
         @_connect_grid_signals(@grids.a)
         if @grids.b?
             @grids.b.set_zoom([0, 0], 1, false)
 
     reset_grid_b: (place_context) =>
         @grid_containers.b.html('')
-        @grids.b = new ControllerPlacementGrid(place_context, @grid_containers.b.attr("id"))
+        @grids.b = new ControllerPlacementGrid(place_context, @grid_containers.b)
         @_connect_grid_signals(@grids.b)
         if @grids.a?
             @grids.a.set_zoom([0, 0], 1, false)

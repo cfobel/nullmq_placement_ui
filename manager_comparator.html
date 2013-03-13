@@ -144,11 +144,6 @@
           <option value="ws://maeby.fobel.net:9000">maeby.fobel.net:9000</option>
         </select>
         <button name="set_zmq_bridge" id="id_set_zmq_bridge">Connect</button>
-
-        <label>Add placement manager:</label>
-        <input id="id_manager_uri" type="text" style="width: 150px;" value="tcp://maeby.fobel.net:12346">
-        <button name="add_manager" id="id_add_manager">Add</button>
-        <button name="go" id="id_go">Go</button>
     </fieldset>
     </div>
   </div>
@@ -264,6 +259,17 @@
         </table>
     </div>
  </div>
+<div class="invisible">
+<div class="placement_manager_grid_selector_template">
+<div class="form-inline">
+<fieldset>
+    <label>Set placement manager:</label>
+    <input type="text" value="{{ uri }}">
+    <button class="manager_add">Set</button>
+</fieldset>
+</div>
+</div>
+</div>
 </section>
 
 <!--<script type="text/javascript" src="/dist/test.js"></script>-->
@@ -284,28 +290,14 @@
     @zmq_context = new nullmq.Context(@bridge_uri_selector.val())
     @placement_managers = {}
 
-    #@placement_comparator = new BasePlacementComparator(
     @placement_comparator = new PlacementManagerComparator(
+        @zmq_context,
         d3.select("#id_placement_a"),
         d3.select("#id_placement_b")
     )
 
     $("#id_set_zmq_bridge").click(() =>
         @zmq_context = new nullmq.Context(@bridge_uri_selector.val())
-    )
-
-    $("#id_add_manager").click(() =>
-        uri = @manager_uri_input.val()
-        @placement_managers[uri] = new PlacementManagerProxy(@zmq_context, uri)
-    )
-
-    $("#id_go").click(() =>
-        uri = 'tcp://maeby.fobel.net:12346'
-        @placement_managers[uri] = new PlacementManagerProxy(@zmq_context, uri)
-        @placement_managers['placement manager 2'] = new PlacementManagerProxy(@zmq_context, uri)
-        p = @placement_managers[Object.keys(@placement_managers)[0]]
-        @placement_comparator.reset_grid_a(@placement_managers[uri])
-        @placement_comparator.reset_grid_b(@placement_managers['placement manager 2'])
     )
 </script>
 </body>

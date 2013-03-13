@@ -291,7 +291,7 @@ th.center {
     width = d3.select("#chart").style("width")
     if width.substr(width.length - 2, width.length) == "px"
         width = eval(width.substr(0, width.length - 2))
-    @placement_grid = new PlacementGrid("chart", 0.75 * width)
+    @placement_grid = new PlacementGrid(d3.select("#chart"), 0.75 * width)
 
     $("#id_clear_selection").click(() =>
         placement_grid.clear_selection()
