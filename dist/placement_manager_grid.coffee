@@ -51,7 +51,7 @@ class PlacementManagerGrid extends PlacementGrid
         $(obj).on('placement_selected', (e) ->
             if obj.selected_key?
                 key_str = obj.get_key_str(obj.selected_key)
-                current_option = placement_comparator.grids.a.manager_header_element.find('option[value="' + key_str + '"]')
+                current_option = e.grid.manager_header_element.find('option[value="' + key_str + '"]')
                 console.log('[select option]', key_str, current_option)
                 current_option.prop('selected', true)
             if e.block_positions?
@@ -171,6 +171,8 @@ class PlacementManagerGrid extends PlacementGrid
         #      * Apply swaps formatting (i.e., `swaps_show(true)`)
         #      * Check `Show swaps` checkbox
         ###
+        if not key.outer_i?
+            key = outer_i: key[0], inner_i: key[1] ? 0
         if JSON.stringify(key) == JSON.stringify(@selected_key)
             # This key was already selected, so do nothing
             return
