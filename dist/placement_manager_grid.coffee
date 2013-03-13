@@ -10,16 +10,21 @@ class PlacementManagerGrid extends PlacementGrid
 
         @manager_header_element = $(obj.manager_header[0])
 
-        @manager_header.select('.show_swaps')
+        @manager_header.select('.swaps_show')
             .on('click', () ->
-                console.log('[show_swaps click]')
                 obj.swaps_show($(this).prop('checked'))
             )
-        @manager_header.select('.apply_swaps')
+
+        @manager_header.select('.swaps_apply')
             .on('click', () ->
-                console.log('[apply_swaps click]')
                 obj.swaps_apply($(this).prop('checked'))
             )
+
+        @manager_header.select('.area_ranges_show')
+            .on('click', () ->
+                obj.area_ranges_show($(this).prop('checked'))
+            )
+
         @manager_header.select('.refresh_keys')
             .on('click', @refresh_keys)
 
@@ -35,6 +40,7 @@ class PlacementManagerGrid extends PlacementGrid
         @selected_key = null
         @_swap_contexts = {}
         @_placements = {}
+        @_place_configs = {}
 
         $(obj).on('keys_updated', (e) ->
             key_chooser = obj.manager_header_element.find('.manager_key_options')
@@ -47,21 +53,33 @@ class PlacementManagerGrid extends PlacementGrid
             if e.block_positions?
                 block_infos = translate_block_positions(e.block_positions)
                 obj._placements[e.key] = block_infos
-                for action in ['apply', 'show']
-                    obj['swaps_' + action](false)
-                    obj.manager_header_element.find('.' + action + '_swaps')
-                        .prop('checked', false)
-                        .prop('disabled', true)
+                for prefix, actions of {swaps_: ['apply', 'show'], area_ranges_: ['show']}
+                    for action in actions
+                        obj[prefix + action](false)
+                        obj.manager_header_element.find('.' + prefix + action)
+                            .prop('checked', false)
+                            .prop('disabled', true)
+                try
+                    obj.placement_manager.get_place_config(((config) ->
+                        obj._place_configs[e.key] = config
+                        obj.area_ranges_show(true)
+                        obj.manager_header_element.find('.area_ranges_show')
+                            .prop('checked', true)
+                            .prop('disabled', false)
+                    ), e.key.outer_i, e.key.inner_i ? 0)
+                catch e
+                    console.log('no config available')
         )
 
         $(obj).on('swap_context_selected', (e) ->
             if e.swap_context?
+                console.log('[swap_context_selected]', e)
                 obj._swap_contexts[e.key] = e.swap_context
                 obj.swaps_show(true)
-                obj.manager_header_element.find('.show_swaps')
-                    .prop('checked', true)
+                obj.manager_header_element.find('.swaps_show')
                     .prop('disabled', false)
-                obj.manager_header_element.find('.apply_swaps')
+                    .prop('checked', true)
+                obj.manager_header_element.find('.swaps_apply')
                     .prop('disabled', false)
         )
 
@@ -226,5 +244,14 @@ class PlacementManagerGrid extends PlacementGrid
             else
                 @set_block_positions(@_placements[@selected_key])
             $(obj).trigger(type: 'swaps_apply_status', state: state)
+
+    area_ranges_show: (state) =>
+        obj = @
+        if @selected_key?
+            if state
+                c = @_place_configs[@selected_key]
+                @highlight_area_ranges(AreaRange.from_array(a) for a in c.area_ranges)
+            else
+                @highlight_area_ranges([])
 
 @PlacementManagerGrid = PlacementManagerGrid
