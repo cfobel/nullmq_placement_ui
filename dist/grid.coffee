@@ -73,7 +73,7 @@ translate_block_positions = (block_positions) ->
 class PlacementGrid
     constructor: (@grid_container, @width=null) ->
         @zoom = d3.behavior.zoom()
-        console.log('[PlacementGrid.constructor]', @grid_container)
+        #console.log('[PlacementGrid.constructor]', @grid_container, @width)
         @header = @grid_container.append('div')
             .attr('class', 'grid_header')
         if not @width?

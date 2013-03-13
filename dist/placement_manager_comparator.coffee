@@ -11,6 +11,7 @@ class PlacementManagerComparator extends BasePlacementComparator
         obj = @
         @manager_selectors = {}
         @placement_managers = {}
+        @grid_width = null
 
         # Add inline forms to allow initialization of a manager from a URI.
         for label in ['a', 'b']
@@ -23,22 +24,33 @@ class PlacementManagerComparator extends BasePlacementComparator
                 .on('click', (d) -> 
                     d.uri = $(this.parentElement).find('input').val()
                     d.manager = new PlacementManagerProxy(obj.zmq_context, d.uri)
-                    obj['reset_grid_' + d.label](d.manager)
+                    obj.reset_grid(d.label, d.manager)
                 )
 
     reset_grid_a: (placement_manager) =>
-        @grid_containers.a.html('')
-        @grids.a = new PlacementManagerGrid(placement_manager, @grid_containers.a)
-        @_connect_grid_signals(@grids.a)
-        if @grids.b?
-            @grids.b.set_zoom([0, 0], 1, false)
+        @reset_grid('a', placement_manager)
 
     reset_grid_b: (placement_manager) =>
-        @grid_containers.b.html('')
-        @grids.b = new PlacementManagerGrid(placement_manager, @grid_containers.b)
-        @_connect_grid_signals(@grids.b)
-        if @grids.a?
-            @grids.a.set_zoom([0, 0], 1, false)
+        @reset_grid('b', placement_manager)
+
+    reset_grid: (label, placement_manager) =>
+        @grid_containers[label].html('')
+        console.log('[reset_grid_' + label + ']', @grid_width)
+        @grids[label] = new PlacementManagerGrid(placement_manager, @grid_containers[label], @grid_width)
+        if not @grid_width?
+            @grid_width = @grids[label].width * 1.15
+        @_connect_grid_signals(@grids[label])
+        opposite = a: 'b', b: 'a'
+        @reset_zoom(opposite[label])
+
+    reset_zoom: (label=null) =>
+        if label?
+            keys = [label]
+        else
+            keys = ['a', 'b']
+        for k in keys
+            if @grids[k]?
+                @grids[k].set_zoom([0, 0], 1, false)
 
     _connect_grid_signals: (grid) =>
         super grid
