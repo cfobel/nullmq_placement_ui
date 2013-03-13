@@ -32,6 +32,7 @@ class Placement
 class PlacementManagerProxy extends EchoJsonController
     constructor: (@context, @req_uri) ->
         super @context, @req_uri
+        @_cache = swap_contexts: {}
 
     get_result: (command_dict, on_recv) ->
         if not command_dict.gzip?
@@ -59,16 +60,25 @@ class PlacementManagerProxy extends EchoJsonController
     get_swap_context_keys: (on_recv) =>
         @get_result({command: "get_swap_context_keys"}, on_recv)
 
-    get_swap_context: (on_recv, outer_i, inner_i=0) ->
+    get_swap_context: (on_recv, outer_i, inner_i=0) =>
         command_dict =
             command: "get_swap_context_infos"
             args: [outer_i, inner_i]
-        console.log('get_swap_context', outer_i: outer_i, inner_i: inner_i)
+
+        key = command_dict.args
+
+        if @_cache.swap_contexts[key]?
+            # The corresponding swap context is available in our cache
+            console.log('[get_swap_context]', 'cache available for key: ', key)
+            on_recv(@_cache.swap_contexts[key])
+            return
+
         @get_placement(((placement) =>
-            @get_result(command_dict, (swap_infos) ->
+            @get_result(command_dict, (swap_infos) =>
                 swap_context = new SwapContext(placement)
                 for s in swap_infos
                     swap_context.process_swap(s)
+                @_cache.swap_contexts[key] = swap_context
                 on_recv(swap_context)
             )
         ), outer_i, inner_i)
