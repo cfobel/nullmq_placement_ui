@@ -1,6 +1,3 @@
-randomnumber=Math.floor(Math.random()*11)
-
-
 class StopIteration
     exception_type: 'StopIteration'
     constructor: (@iterator) ->
@@ -55,6 +52,21 @@ do_swaps = (p, maps, count=null) ->
     return s.p
 
 
+get_swaps = (p, maps) ->
+    s = new SwapGenerator(p, maps)
+    count = count ? s.swap_order.length
+    swaps = []
+    if count > 0
+        try
+            for i in [0..count - 1]
+                swap = s.next()
+                swaps.push(swap)
+        catch e
+            if not e.exception_type? or e.exception_type != 'StopIteration'
+                throw e
+    return swaps
+
+
 class ConfinedSwapCrossover
     constructor: (a, b) ->
         @p =
@@ -74,5 +86,6 @@ class ConfinedSwapCrossover
 
 
 @do_swaps = do_swaps
+@get_swaps = get_swaps
 @SwapGenerator = SwapGenerator
 @ConfinedSwapCrossover = ConfinedSwapCrossover
