@@ -60,6 +60,30 @@ class ControllerTableView
             @update_controller_table()
         )
 
+        $(obj.controller_factory).on("manager", (e) => 
+            # Whenever a new manager is added, refresh uri in table.
+            console.log('[manager]', e)
+            e.manager_uri = e.manager_uri.replace('*', obj.controller_factory.hostname)
+            obj.controller_manager.controllers[e.process_id].manager_uri = e.manager_uri
+            @refresh_placement_managers()
+        )
+
+        $(obj.controller_manager).on("manager_added", (e) => 
+            # Whenever a new manager is added, refresh uri in table.
+            console.log('[manager_added]', e)
+            e.manager_uri = e.manager_uri.replace('*', obj.controller_factory.hostname)
+            @refresh_placement_managers()
+        )
+
+    refresh_placement_managers: () =>
+        rows = d3.select('#id_controllers_tbody').selectAll('.controller_row')
+        rows.each((d) ->
+            console.log('[update_controller_table]', d, d.controller.manager_uri)
+            d3.select(this).select('.manager_uri').html(
+                d.controller.manager_uri ? '&nbsp;'
+            )
+        )
+
     set_grid: (controller, grid_label) =>
         controller.get_block_positions((block_positions) =>
             controller.do_command({"command": "config"}, (result) =>
