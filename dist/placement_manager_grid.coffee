@@ -56,7 +56,7 @@ class PlacementManagerGrid extends PlacementGrid
                 current_option.prop('selected', true)
             if e.block_positions?
                 block_infos = translate_block_positions(e.block_positions)
-                obj._placements[e.key] = block_infos
+                obj._placements[JSON.stringify(e.key)] = block_infos
                 for prefix, actions of {swaps_: ['apply', 'show'], area_ranges_: ['show']}
                     for action in actions
                         obj[prefix + action](false)
@@ -78,7 +78,7 @@ class PlacementManagerGrid extends PlacementGrid
         $(obj).on('swap_context_selected', (e) ->
             if e.swap_context?
                 console.log('[swap_context_selected]', e)
-                obj._swap_contexts[e.key] = e.swap_context
+                obj._swap_contexts[JSON.stringify(e.key)] = e.swap_context
                 obj.swaps_show(true)
                 obj.manager_header_element.find('.swaps_show')
                     .prop('disabled', false)
@@ -217,7 +217,7 @@ class PlacementManagerGrid extends PlacementGrid
     swap_blocks_show: (state) =>
         obj = @
         if @selected_key? and @_swap_contexts[@selected_key]?
-            s = @_swap_contexts[@selected_key]
+            s = @_swap_contexts[JSON.stringify(@selected_key)]
             if state
                 s.update_block_formats(obj)
             else
@@ -227,7 +227,7 @@ class PlacementManagerGrid extends PlacementGrid
         obj = @
         if @selected_key?
             if state
-                s = @_swap_contexts[@selected_key]
+                s = @_swap_contexts[JSON.stringify(@selected_key)]
                 s.update_block_formats(obj)
                 s.set_swap_link_data(obj)
                 s.update_link_formats(obj)
@@ -249,10 +249,10 @@ class PlacementManagerGrid extends PlacementGrid
         obj = @
         if @selected_key?
             if state
-                s = @_swap_contexts[@selected_key]
-                @set_block_positions(s.apply_swaps(@_placements[@selected_key]))
+                s = @_swap_contexts[JSON.stringify(@selected_key)]
+                @set_block_positions(s.apply_swaps(@_placements[JSON.stringify(@selected_key)]))
             else
-                @set_block_positions(@_placements[@selected_key])
+                @set_block_positions(@_placements[JSON.stringify(@selected_key)])
             $(obj).trigger(type: 'swaps_apply_status', state: state)
 
     area_ranges_show: (state) =>

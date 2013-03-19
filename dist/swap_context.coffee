@@ -35,12 +35,12 @@ class SwapContext
         # current context.
         for swap_i,swap_info of @accepted
             if swap_info.swap_config.master > 0
-                if swap_info.swap_config.ids.from_ >= 0
+                if swap_info.swap_config.ids.from_? and swap_info.swap_config.ids.from_ >= 0
                     #console.log('swap_info.swap_config.ids.from_', swap_info.swap_config.ids.from_)
                     from_d = block_infos[+swap_info.swap_config.ids.from_]
                     from_d.x = swap_info.swap_config.coords.to.x
                     from_d.y = swap_info.swap_config.coords.to.y
-                if swap_info.swap_config.ids.to >= 0
+                if swap_info.swap_config.ids.to? and swap_info.swap_config.ids.to >= 0
                     to_d = block_infos[+swap_info.swap_config.ids.to]
                     to_d.x = swap_info.swap_config.coords.from_.x
                     to_d.y = swap_info.swap_config.coords.from_.y

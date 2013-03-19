@@ -4,8 +4,6 @@ class BasePlacementComparator
             a: a_container
             b: b_container
 
-        @templates = @get_templates()
-
         @grid_containers =
             a: @containers.a.append('div').attr('class', 'grid_a')
             b: @containers.b.append('div').attr('class', 'grid_b')
@@ -21,15 +19,6 @@ class BasePlacementComparator
         @grids =
             a: null
             b: null
-
-    get_templates: () ->
-        _.templateSettings = interpolate: /\{\{(.+?)\}\}/g
-        template_texts =
-            manager_selector: d3.select('.placement_manager_grid_selector_template').html()
-        templates = {}
-        for k, v of template_texts
-            templates[k] = _.template(v)
-        return templates
 
     reset_grid_a: () =>
         @grid_containers.a.html('')

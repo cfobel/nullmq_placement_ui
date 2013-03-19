@@ -13,6 +13,8 @@ class PlacementManagerComparator extends BasePlacementComparator
         @placement_managers = {}
         @grid_width = null
 
+        @templates = @get_templates()
+
         # Add inline forms to allow initialization of a manager from a URI.
         for label in ['a', 'b']
             @manager_selectors[label] = @containers[label]
@@ -26,6 +28,15 @@ class PlacementManagerComparator extends BasePlacementComparator
                     d.manager = new PlacementManagerProxy(obj.zmq_context, d.uri)
                     obj.reset_grid(d.label, d.manager)
                 )
+
+    get_templates: () ->
+        _.templateSettings = interpolate: /\{\{(.+?)\}\}/g
+        template_texts =
+            manager_selector: d3.select('.placement_manager_grid_selector_template').html()
+        templates = {}
+        for k, v of template_texts
+            templates[k] = _.template(v)
+        return templates
 
     reset_grid_a: (placement_manager) =>
         @reset_grid('a', placement_manager)
