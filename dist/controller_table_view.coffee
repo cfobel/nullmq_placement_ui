@@ -50,7 +50,13 @@ class ControllerTableView
         $(obj.controller_manager).on("controller_added", (e) => 
             # Whenever a new controller proxy is added to the controller proxy
             # manager, add a corresponding row to the controller table view.
-            @update_controller_table()
+            c = e.controller
+            c.do_command(command: "manager", (result) -> 
+                if result.manager_uri?
+                    c.manager_uri = result.manager_uri.replace('*', c.hostname)
+                obj.update_controller_table()
+                obj.refresh_placement_managers()
+            )
         )
 
         $(obj.controller_manager).on("controller_removed", (e) => 
@@ -62,26 +68,18 @@ class ControllerTableView
 
         $(obj.controller_factory).on("manager", (e) => 
             # Whenever a new manager is added, refresh uri in table.
-            console.log('[manager]', e)
             e.manager_uri = e.manager_uri.replace('*', obj.controller_factory.hostname)
             obj.controller_manager.controllers[e.process_id].manager_uri = e.manager_uri
-            @refresh_placement_managers()
-        )
-
-        $(obj.controller_manager).on("manager_added", (e) => 
-            # Whenever a new manager is added, refresh uri in table.
-            console.log('[manager_added]', e)
-            e.manager_uri = e.manager_uri.replace('*', obj.controller_factory.hostname)
             @refresh_placement_managers()
         )
 
     refresh_placement_managers: () =>
         rows = d3.select('#id_controllers_tbody').selectAll('.controller_row')
         rows.each((d) ->
-            console.log('[update_controller_table]', d, d.controller.manager_uri)
-            d3.select(this).select('.manager_uri').html(
-                d.controller.manager_uri ? '&nbsp;'
-            )
+            if d.controller.manager_uri?
+                d3.select(this).select('.manager_uri .manager-button').html(
+                    d.controller.manager_uri ? '&nbsp;'
+                )
         )
 
     set_grid: (controller, grid_label) =>
@@ -132,6 +130,7 @@ class ControllerTableView
                 # Attach `on_click` handlers for the buttons each
                 # controller row, e.g., `iterate`, `kill`, etc.
                 c = d.controller
+                $(c).on('manager_added', obj.refresh_placement_managers)
                 c.row().find('.action_iterate > button').click(() ->
                     c.do_iteration()
                 )

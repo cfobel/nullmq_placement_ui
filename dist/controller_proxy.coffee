@@ -4,6 +4,7 @@ class ControllerProxy extends EchoJsonController
         @socks =
             rep: @echo_fe
             sub: @context.socket(nullmq.SUB)
+        @hostname = /tcp:\/\/(.*):\d+/.exec(@rep_uri)[1]
         @socks.sub.connect(@pub_uri)
         @socks.sub.setsockopt(nullmq.SUBSCRIBE, "")
         @socks.sub.recvall(@process_status_update)
@@ -143,6 +144,31 @@ class ControllerProxy extends EchoJsonController
                     )
                 )
             )
+
+    make_manager: (on_response=null) =>
+        obj = @
+
+        if obj.manager_uri?
+            # If we have already created a manager, just return the previous
+            # URI.
+            if on_response?
+                on_response(manager_uri: obj.manager_uri)
+            return
+
+        _on_response = (response) ->
+            obj.manager_uri = response.manager_uri
+            obj.manager_uri.replace('*', @hostname)
+            response.manager_uri = obj.manager_uri
+            console.log('[make_manager] new manager available at:',
+                obj.manager_uri)
+            event_data =
+                type: "manager_added"
+                controller: obj
+                manager_uri: obj.manager_uri
+            $(obj).trigger(event_data)
+            if on_response?
+                on_response(response)
+        @do_command({"command": "make_manager"}, _on_response)
 
     process_status_update: (message) =>
         obj = @

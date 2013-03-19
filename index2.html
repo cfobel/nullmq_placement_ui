@@ -17,6 +17,7 @@
 <script type="text/javascript" src="/dist/bootstrap/js/bootstrap.min.js"></script>
 <script type="text/javascript" src="/dist/bootstrap/js/bootstrapx-clickover.js"></script>
 <script type="text/javascript" src="/dist/lib/bootstrap-contextmenu.js"></script>
+<script type="text/javascript" src="/dist/lib/ZeroClipboard.js"></script>
 <style  type="text/css">
 .improving {
     background-color: #D5ECBF !important;
@@ -152,7 +153,8 @@
        <td class="iteration"></td>
        <td class="rep_uri">{{ controller.rep_uri }}</td>
        <td class="pub_uri">{{ controller.pub_uri }}</td>
-       <td class="manager_uri">{{ controller.manager_uri }}</td>
+       <!--<td class="manager_uri">{{ controller.manager_uri }}</td>-->
+       <td class="manager_uri"><button class="btn btn-small manager-button">Make manager</button></td>
        <td class="actions">
           <div class="action_iterate">
             <button class="btn btn-mini">iterate</button>
@@ -202,6 +204,8 @@
 <script type="text/coffeescript" src="/dist/controller_table_view.coffee"></script>
 <script type="text/coffeescript" src="/dist/coffee_helpers.coffee"></script>
 <script type="text/coffeescript">
+    #@clip = new ZeroClipboard($("#d_clip_button"), moviePath: "dist/lib/ZeroClipboard.swf")
+    #var clip = new ZeroClipboard($("#d_clip_button"), {moviePath: "dist/lib/ZeroClipboard.swf"})
     @netlist_chooser = $('#id_netlist_chooser')
     @architecture_chooser = $('#id_architecture_chooser')
     @modifier_chooser = $('#id_modifier_chooser')

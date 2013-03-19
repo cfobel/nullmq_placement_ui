@@ -18,21 +18,11 @@ class ControllerFactoryProxy extends EchoJsonController
                                 data.uris.rep = data.uris.rep.replace('*', obj.hostname)
                                 data.uris.pub = data.uris.pub.replace('*', obj.hostname)
                                 $(obj).trigger(data)
-                            obj.do_request(command: "available_managers", (response) ->
-                                manager_infos = response.result
-                                for info in manager_infos
-                                    event_data =
-                                        type: "manager"
-                                        process_id: info.process_id
-                                        controller_factory: obj
-                                        manager_uri: info.manager_uri
-                                    $(obj).trigger(event_data)
-                                event_data =
-                                    type: "reset_completed"
-                                    controller_factory: obj
-                                    running_processes: value.result
-                                $(obj).trigger(event_data)
-                            )
+                            event_data =
+                                type: "reset_completed"
+                                controller_factory: obj
+                                running_processes: value.result
+                            $(obj).trigger(event_data)
                         )
                     )
             )
