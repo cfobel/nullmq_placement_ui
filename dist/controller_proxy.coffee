@@ -134,6 +134,15 @@ class ControllerProxy extends EchoJsonController
                                 @_initialized = true
                             else
                                 obj.do_command({"command": "initialize", "kwargs": {"depth": 2}}, (value) =>
+                                    obj.make_manager()
+                                    try
+                                        obj.do_command({command: 'config', kwargs: {depth: 2}}, (value) ->)
+                                    catch e
+                                        obj._last_error = e
+                                    try
+                                        obj.get_block_positions(() ->)
+                                    catch e
+                                        obj._last_error = e
                                     obj.do_iteration((value) =>
                                         obj.do_iteration((value) =>
                                             @_initialized = true
@@ -145,8 +154,10 @@ class ControllerProxy extends EchoJsonController
                 )
             )
 
-    make_manager: (on_response=null) =>
+    make_manager: ({on_response, max_cached_count}={}) =>
         obj = @
+        on_response ?= null
+        max_cached_count ?= 20
 
         if obj.manager_uri?
             # If we have already created a manager, just return the previous
@@ -156,11 +167,10 @@ class ControllerProxy extends EchoJsonController
             return
 
         _on_response = (response) ->
-            obj.manager_uri = response.manager_uri
-            obj.manager_uri.replace('*', @hostname)
+            obj.manager_uri = response.manager_uri.replace('*', obj.hostname)
             response.manager_uri = obj.manager_uri
             console.log('[make_manager] new manager available at:',
-                obj.manager_uri)
+                obj.manager_uri, obj.hostname)
             event_data =
                 type: "manager_added"
                 controller: obj
@@ -168,7 +178,7 @@ class ControllerProxy extends EchoJsonController
             $(obj).trigger(event_data)
             if on_response?
                 on_response(response)
-        @do_command({"command": "make_manager"}, _on_response)
+        @do_command({command: 'make_manager', kwargs: {max_cached_count: max_cached_count}}, _on_response)
 
     process_status_update: (message) =>
         obj = @

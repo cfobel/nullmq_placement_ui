@@ -74,12 +74,27 @@ class ControllerTableView
         )
 
     refresh_placement_managers: () =>
+        obj = @
         rows = d3.select('#id_controllers_tbody').selectAll('.controller_row')
         rows.each((d) ->
+            d3.select(this).select('.manager_uri').html('')
             if d.controller.manager_uri?
-                d3.select(this).select('.manager_uri .manager-button').html(
-                    d.controller.manager_uri ? '&nbsp;'
-                )
+                d3.select(this).select('.manager_uri')
+                  .append('div')
+                    .attr('class', 'manager-uri')
+                    .html(d.controller.manager_uri)
+            else
+                d3.select(this).select('.manager_uri')
+                  .append('button')
+                    .classed('manager-button', true)
+                    .classed('btn', true)
+                    .classed('btn-mini', true)
+                    .html('Make manager')
+                    .on('click', (d) ->
+                        d.controller.make_manager({on_response: (result) ->
+                            obj.refresh_placement_managers()
+                        })
+                    )
         )
 
     set_grid: (controller, grid_label) =>

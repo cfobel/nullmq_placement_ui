@@ -15,8 +15,9 @@ class ControllerFactoryProxy extends EchoJsonController
                         obj.do_request(command: "running_processes", (value) =>
                             for process_info in value.result
                                 data = $().extend({type: "controller"}, process_info)
-                                data.uris.rep = data.uris.rep.replace('*', obj.hostname)
-                                data.uris.pub = data.uris.pub.replace('*', obj.hostname)
+                                for key, uri of data.uris
+                                    data.uris[key] = uri.replace('*',
+                                                                 obj.hostname)
                                 $(obj).trigger(data)
                             event_data =
                                 type: "reset_completed"
@@ -42,8 +43,9 @@ class ControllerFactoryProxy extends EchoJsonController
             else
                 data = $().extend({type: "controller"}, kwargs)
                 data = $().extend(data, value.result)
-                data.uris.rep = data.uris.rep.replace('*', obj.hostname)
-                data.uris.pub = data.uris.pub.replace('*', obj.hostname)
+                for key, uri of data.uris
+                    data.uris[key] = uri.replace('*',
+                                                 obj.hostname)
                 $(obj).trigger(data)
         )
 

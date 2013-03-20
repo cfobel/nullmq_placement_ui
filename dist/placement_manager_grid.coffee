@@ -136,20 +136,26 @@ class PlacementManagerGrid extends PlacementGrid
                     keys_dict[k] = k
                 for k in swap_context_keys
                     keys_dict[k] = k
+                _refresh_keys = () ->
+                    # The current key is not present in our local key list,
+                    # so update our list and trigger a notification of the
+                    # update.
+                    keys = (v for k, v of keys_dict)
+                    obj.keys = keys_dict
+                    $(obj).trigger(type: "keys_updated", grid: obj, keys: keys)
+                    if not obj.selected_key?
+                        # No key is currently selected, so select the first
+                        # one.
+                        key = _.last(keys)
+                        key_data = outer_i: key[0], inner_i: key[1] ? 0
+                        obj.select_key(key_data)
                 for k, v of keys_dict
                     if not (k of obj.keys)
-                        # The current key is not present in our local key list,
-                        # so update our list and trigger a notification of the
-                        # update.
-                        keys = (v for k, v of keys_dict)
-                        obj.keys = keys_dict
-                        $(obj).trigger(type: "keys_updated", grid: obj, keys: keys)
-                        if not obj.selected_key?
-                            # No key is currently selected, so select the first
-                            # one.
-                            key = _.last(keys)
-                            key_data = outer_i: key[0], inner_i: key[1] ? 0
-                            obj.select_key(key_data)
+                        _refresh_keys()
+                        return
+                for k, v of obj.keys
+                    if not (k of keys_dict)
+                        _refresh_keys()
                         return
                 console.log('[refresh_keys]', 'No new keys')
             )
