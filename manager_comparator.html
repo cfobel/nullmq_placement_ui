@@ -300,6 +300,16 @@
     $("#id_set_zmq_bridge").click(() =>
         @zmq_context = new nullmq.Context(@bridge_uri_selector.val())
     )
+
+    @remove_static_styles = (selection, style_attrs) ->
+        for attr in style_attrs
+            selection.style(attr, null)
+
+    @apply_static_styles = (selection, style_attrs) ->
+        for attr in style_attrs
+            selection.style(attr, (d) ->
+                d3.select(this).style(attr)
+            )
 </script>
 </body>
 </html>

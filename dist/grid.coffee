@@ -159,6 +159,19 @@ class PlacementGrid
                 $(obj).trigger(response)
         )
 
+    save: () =>
+        # First, we must apply all styles as static `style` attributes so they
+        # will be set properly in the resulting SVG file.
+        apply_static_styles(d3.selectAll('.block,.grid_background,.swap_link'), ['opacity', 'stroke-width', 'stroke', 'fill'])
+
+        serializer = new XMLSerializer()
+        data = serializer.serializeToString(@canvas[0][0])
+        uriContent = "data:application/svg+xml," + encodeURIComponent(data)
+        window.location = uriContent
+
+        # Remove the static styles
+        remove_static_styles(d3.selectAll('.block,.grid_background,.swap_link'), ['opacity', 'stroke-width', 'stroke', 'fill'])
+
     get_templates: () ->
         _.templateSettings = interpolate: /\{\{(.+?)\}\}/g
         template_texts =
