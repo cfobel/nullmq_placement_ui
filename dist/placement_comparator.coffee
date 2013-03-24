@@ -28,18 +28,10 @@ class BasePlacementComparator
         if not @grids.a? or not @grids.b or
           not @grids.a.area_ranges? or not @grids.b.area_ranges
             return []
-        area_ranges = {}
-        @grids.a.area_ranges.selectAll('.area_range').each((d, i) -> area_ranges[i] = d)
         mismatched_blocks = @mismatch_blocks()
-        mismatched_area_ranges = {}
-        for b in mismatched_blocks
-            for i, a of area_ranges
-                if a.area_range.contains(b.a)
-                    if not (i of mismatched_area_ranges)
-                        mismatched_area_ranges[i] = [b]
-                    else
-                        mismatched_area_ranges[i].push(a)
-                    break
+        mismatched_area_ranges =
+            a: @grids.a.containing_area_ranges(mismatched_blocks)
+            b: @grids.b.containing_area_ranges(mismatched_blocks)
         return mismatched_area_ranges
 
     mismatch_blocks: () =>

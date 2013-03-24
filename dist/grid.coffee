@@ -366,7 +366,31 @@ class PlacementGrid
                 "translate(" + @scale.x(a.second_index) + ", " + @scale.y(a.first_index + a.first_extent - 1) + ")"
             )
 
+    containing_area_ranges: (blocks) =>
+        ###
+        # Construct a list of the area ranges containing the at least one of
+        # the blocks from the list of blocks provided.
+        ###
+        area_ranges = {}
+        @area_ranges.selectAll('.area_range').each((d, i) -> area_ranges[i] = d)
+        if Object.keys(area_ranges).length <= 0
+            return {}
+        containing_area_ranges = {}
+        for b in blocks
+            for i, a of area_ranges
+                if a.area_range.contains(b.a)
+                    if not (i of containing_area_ranges)
+                        containing_area_ranges[i] = [b]
+                    else
+                        containing_area_ranges[i].push(a)
+                    break
+        return containing_area_ranges
+
     get_anchor_coords: (a) ->
+        ###
+        # Return the coordinates (w.r.t. tile positions) where the label for
+        # area range `a` should be placed.
+        ###
         result =
             x: @scale.x(a.second_index + 0.5)
             y: @scale.y(a.first_index + a.first_extent - 2.5)
