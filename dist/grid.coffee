@@ -323,14 +323,20 @@ class PlacementGrid
                 "translate(" + position.x + "," + position.y + ")")
 
     highlight_area_ranges: (area_ranges) ->
+        data = ({area_range: a, text_anchor: @get_anchor_coords(a)} for a in area_ranges)
         area_ranges = @area_ranges.selectAll('.area_range')
-            .data(area_ranges)
+            .data(data)
         area_ranges.exit().remove()
         area_ranges.enter().append("svg:rect")
             .attr("class", "area_range")
-            .attr("width", (d) => d.second_extent * @scale.x(1))
-            .attr("height", (d) => d.first_extent * @scale.y(@dims.y.max))
-            .style("stroke", (d) => @colors((d.first_index * d.second_index) % 10))
+            .attr("width", (d) => d.area_range.second_extent * @scale.x(1))
+            .attr("height", (d) =>
+                d.area_range.first_extent * @scale.y(@dims.y.max)
+            )
+            .style("stroke", (d) =>
+                a = d.area_range
+                @colors((a.first_index * a.second_index) % 10)
+            )
             .style("fill", "none")
             .style("stroke-width", 7)
             .style('opacity', 0.75)
@@ -341,10 +347,30 @@ class PlacementGrid
                 d3.select(this).style("stroke-width", 7)
             )
 
+        labels = @area_ranges.selectAll('.area_range-label').data(data)
+
+        labels.exit().remove()
+        labels.enter().append('text').classed('area_range-label', true)
+
+        labels.transition()
+            .attr('x', (d) -> d.text_anchor.x)
+            .attr('y', (d) -> d.text_anchor.y)
+            .attr('font-size', (d) => @scale.x(1.5))
+            .text((d, i) -> i)
+
         area_ranges.transition()
             .duration(400)
             .ease("cubic-in-out")
-            .attr("transform", (d) => "translate(" + @scale.x(d.second_index) + ", " + @scale.y(d.first_index + d.first_extent - 1) + ")")
+            .attr("transform", (d) =>
+                a = d.area_range
+                "translate(" + @scale.x(a.second_index) + ", " + @scale.y(a.first_index + a.first_extent - 1) + ")"
+            )
+
+    get_anchor_coords: (a) ->
+        result =
+            x: @scale.x(a.first_index + 0.5)
+            y: @scale.y(a.second_index + a.second_extent - 2.5)
+
 
 
 class ControllerPlacementGrid extends PlacementGrid
