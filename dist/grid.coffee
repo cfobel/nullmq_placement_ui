@@ -368,9 +368,8 @@ class PlacementGrid
 
     get_anchor_coords: (a) ->
         result =
-            x: @scale.x(a.first_index + 0.5)
-            y: @scale.y(a.second_index + a.second_extent - 2.5)
-
+            x: @scale.x(a.second_index + 0.5)
+            y: @scale.y(a.first_index + a.first_extent - 2.5)
 
 
 class ControllerPlacementGrid extends PlacementGrid
