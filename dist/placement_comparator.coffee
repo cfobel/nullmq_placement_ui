@@ -20,6 +20,45 @@ class BasePlacementComparator
             a: null
             b: null
 
+    mismatch_area_ranges: () =>
+        ###
+        # Construct a list of the area ranges containing one or more mismatched
+        # block-to-tile mappings.
+        ###
+        if not @grids.a? or not @grids.b or
+          not @grids.a.area_ranges? or not @grids.b.area_ranges
+            return []
+        area_ranges = {}
+        @grids.a.area_ranges.selectAll('.area_range').each((d, i) -> area_ranges[i] = d)
+        mismatched_blocks = @mismatch_blocks()
+        mismatched_area_ranges = {}
+        for b in mismatched_blocks
+            for i, a of area_ranges
+                if a.area_range.contains(b.a)
+                    if not (i of mismatched_area_ranges)
+                        mismatched_area_ranges[i] = [b]
+                    else
+                        mismatched_area_ranges[i].push(a)
+                    break
+        return mismatched_area_ranges
+
+    mismatch_blocks: () =>
+        ###
+        # Construct a list of block pairs, where the block at tile position `t`
+        # in grid `a` is different from the block at `t` in grid `b`.
+        ###
+        if not @grids.a? or not @grids.b
+            return []
+        a_blocks = @grids.a.canvas.selectAll('.block').data()
+        b_blocks = @grids.b.canvas.selectAll('.block').data()
+
+        result = []
+        for data,i in _.zip(a_blocks, b_blocks)
+            [a, b] = data
+            if JSON.stringify(a) != JSON.stringify(b)
+                result.push(i: i, a: a, b: b)
+        return result
+
     reset_grid_a: () =>
         @grid_containers.a.html('')
         @grids.a = new PlacementGrid(@grid_containers.a)
