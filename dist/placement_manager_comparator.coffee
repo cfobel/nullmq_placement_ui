@@ -15,10 +15,14 @@ class PlacementManagerComparator extends BasePlacementComparator
 
         @templates = @get_templates()
 
+        default_uris =
+            a: 'tcp://maeby.fobel.net:9999'
+            b: 'tcp://localhost:1111'
+
         # Add inline forms to allow initialization of a manager from a URI.
         for label in ['a', 'b']
             @manager_selectors[label] = @containers[label]
-                .datum(label: label, uri: 'tcp://maeby.fobel.net:12346')
+                .datum(label: label, uri: default_uris[label])
               .insert('div', '.grid_' + label)
                 .attr('class', (d) -> 'grid_' + d.label + '_manager_selector')
                 .html((d) => @templates.manager_selector(d))
