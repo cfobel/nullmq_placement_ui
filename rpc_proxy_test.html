@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-/>
+<html lang="en">
+<head>
+<title>NullMQ placement server example</title>
+<link href="/dist/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+<link href="/dist/bootstrap/css/bootstrap-responsive.css" rel="stylesheet">
+<link href="/dist/lib/jquery-ui.css" rel="stylesheet">
+<script type="text/javascript" src="/dist/lib/jquery-latest.js"></script>
+<script type="text/javascript" src="/dist/lib/jquery-ui.js"></script>
+<script type="text/javascript" src="/dist/lib/underscore-min.js"></script>
+<script type="text/javascript" src="/dist/lib/coffee-script.js"></script>
+<script type="text/javascript" src="/dist/lib/stomp.js"></script>
+<script type="text/javascript" src="/dist/lib/nullmq.js"></script>
+</head>
+<body>
+<h1>TODO:</h1>
+
+
+<script type="text/coffeescript" src="/dist/rpc_proxy.coffee"></script>
+
+<script type="text/coffeescript">
+    @zmq_context = new nullmq.Context('ws://localhost:9000')
+    @proxy = new RpcProxy(@zmq_context, 'tcp://localhost:55555', 'test-proxy')
+</script>
+
+</body>
+</html>
