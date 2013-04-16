@@ -8,7 +8,8 @@ from ws4py.server.geventserver import WebSocketServer
 from stomp4py.server.websocket import StompHandler
 from stomp4py.server.base import Subscription
 
-from gevent_zeromq import zmq
+#from gevent_zeromq import zmq
+import zmq.green as zmq
 
 context = zmq.Context()
 
@@ -46,7 +47,7 @@ class ZeroMQBridge(object):
         connection.socket = context.socket(
             getattr(zmq, connection.socket_type.upper()))
         connection.socket.connect('%s' % (connection.destination))
-        
+
         self.connection_by_uid[connection.uid] = connection
         self.connection_by_destination[connection.destination].add(connection)
         if connection.socket_type == 'sub':
@@ -56,14 +57,14 @@ class ZeroMQBridge(object):
                 while connection.active:
                     connection.send(connection.socket.recv())
             gevent.spawn(listen_for_messages)
-    
+
     def close(self, connection):
         if connection.listener:
             connection.listener.kill()
         connection.socket.close()
         del self.connection_by_uid[connection.uid]
         self.connection_by_destination[connection.destination].remove(connection)
-    
+
     def send(self, frame):
         type = frame.headers.get('socket')
         if type in ['req', 'rep']:
