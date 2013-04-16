@@ -146,7 +146,8 @@ class PlacementManagerGrid extends PlacementGrid
                     if not obj.selected_key?
                         # No key is currently selected, so select the first
                         # one.
-                        key = _.last(keys)
+                        #key = _.last(keys)
+                        key = keys[0]
                         key_data = outer_i: key[0], inner_i: key[1] ? 0
                         obj.select_key(key_data)
                 for k, v of keys_dict

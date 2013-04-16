@@ -8,7 +8,6 @@ class BasePlacementComparator
             a: @containers.a.append('div').attr('class', 'grid_a')
             b: @containers.b.append('div').attr('class', 'grid_b')
 
-        console.log('[BasePlacementComparator]', @grid_containers)
         @grid_containers.a.style("border", "solid #9e6ab8")
         @grid_containers.b.style("border", "solid #7bb33d")
 
@@ -30,8 +29,8 @@ class BasePlacementComparator
             return []
         mismatched_blocks = @mismatch_blocks()
         mismatched_area_ranges =
-            a: @grids.a.containing_area_ranges(mismatched_blocks)
-            b: @grids.b.containing_area_ranges(mismatched_blocks)
+            a: @grids.a.containing_area_ranges(b.a for b in mismatched_blocks)
+            b: @grids.b.containing_area_ranges(b.b for b in mismatched_blocks)
         return mismatched_area_ranges
 
     mismatch_blocks: () =>
@@ -41,8 +40,17 @@ class BasePlacementComparator
         ###
         if not @grids.a? or not @grids.b
             return []
-        a_blocks = @grids.a.canvas.selectAll('.block').data()
-        b_blocks = @grids.b.canvas.selectAll('.block').data()
+
+        # N.B. Use grid block positions, rather than retrieving the data
+        # through a d3 selection `data()` call.  The reason is that it appears
+        # that although a call to `data(...)` is made in the grid's
+        # `set_block_positions()` method, setting the data in this way does not
+        # seem to update the data item (i.e., block info, including
+        # coordinates) attached to each SVG block element.  While further
+        # investigation should probably be done to get a better understanding
+        # of what's going on, this provides a workaround for now.
+        a_blocks = @grids.a.block_positions
+        b_blocks = @grids.b.block_positions
 
         result = []
         for data,i in _.zip(a_blocks, b_blocks)

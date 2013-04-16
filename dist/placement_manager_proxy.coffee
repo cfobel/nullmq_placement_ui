@@ -2,19 +2,20 @@ class Placement
     constructor: (block_positions=null) ->
         @layers = []
         @block_positions = []
+        @dims = null
         if block_positions?
             @set_block_positions(block_positions)
 
     set_block_positions: (block_positions) =>
         @block_positions = block_positions
-        dims =
+        @dims =
             x: d3.max(p[0] for p in block_positions) + 1
             y: d3.max(p[1] for p in block_positions) + 1
             z: d3.max(p[2] for p in block_positions) + 1
 
         @layers = []
-        for z in [0..dims.z - 1]
-            m = Matrix.Zero(dims.x, dims.y)
+        for z in [0..@dims.z - 1]
+            m = Matrix.Zero(@dims.x, @dims.y)
             # Initialize all block IDs to -1
             m = m.map((v) -> v - 1)
             @layers.push(m)

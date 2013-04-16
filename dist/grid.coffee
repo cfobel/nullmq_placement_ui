@@ -257,10 +257,10 @@ class PlacementGrid
         infos.exit().remove()
         infos.html((d) -> placement_grid.template($().extend({net_ids: ''}, d)))
 
-    set_raw_block_positions: (raw_block_positions) ->
+    set_raw_block_positions: (raw_block_positions) =>
         @set_block_positions(translate_block_positions(raw_block_positions))
 
-    set_block_positions: (block_positions) ->
+    set_block_positions: (block_positions) =>
         @dims.x.max = Math.max(d3.max(item.x for item in block_positions), @dims.x.max)
         @dims.x.min = Math.min(d3.min(item.x for item in block_positions), @dims.x.min)
         @dims.y.max = Math.max(d3.max(item.y for item in block_positions), @dims.y.max)
@@ -277,8 +277,8 @@ class PlacementGrid
         # Each tag of class `cell` is an SVG group tag.  Each such group
         # contains an SVG rectangle tag, corresponding to a block in the
         # placement grid.
-        blocks = @blocks.selectAll(".cell")
-            .data(@block_positions, (d) -> d.block_id)
+        blocks = @blocks.selectAll(".cell").data(@block_positions)
+        #.data(@block_positions, (d) -> d.block_id)
 
         obj = @
 
@@ -366,6 +366,27 @@ class PlacementGrid
                 "translate(" + @scale.x(a.second_index) + ", " + @scale.y(a.first_index + a.first_extent - 1) + ")"
             )
 
+    blocks_by_area_range: (area_ranges, blocks=null) =>
+        if not blocks?
+            blocks = @block_positions
+        placement = new Placement([b.x, b.y, b.z] for b in blocks)
+        dims = placement.dims
+
+        blocks_mapping = {}
+        for i, a of area_ranges
+            x0 = a.area_range.first_index
+            dx = a.area_range.first_extent
+            y0 = a.area_range.second_index
+            dy = a.area_range.second_extent
+            for x in [x0..x0 + dx - 1]
+                for y in [y0..y0 + dy - 1]
+                    block_id = placement.e(x, y)
+                    if block_id >= 0
+                        if not blocks_mapping[i]?
+                            blocks_mapping[i] = []
+                        blocks_mapping[i].push(blocks[block_id])
+        return blocks_mapping
+
     containing_area_ranges: (blocks) =>
         ###
         # Construct a list of the area ranges containing the at least one of
@@ -373,18 +394,9 @@ class PlacementGrid
         ###
         area_ranges = {}
         @area_ranges.selectAll('.area_range').each((d, i) -> area_ranges[i] = d)
-        if Object.keys(area_ranges).length <= 0
+        if Object.keys(area_ranges).length <= 0 or blocks.length <= 0
             return {}
-        containing_area_ranges = {}
-        for b in blocks
-            for i, a of area_ranges
-                if a.area_range.contains(b.a)
-                    if not (i of containing_area_ranges)
-                        containing_area_ranges[i] = [b]
-                    else
-                        containing_area_ranges[i].push(a)
-                    break
-        return containing_area_ranges
+        return @blocks_by_area_range(area_ranges, blocks)
 
     get_anchor_coords: (a) ->
         ###
