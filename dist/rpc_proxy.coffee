@@ -9,22 +9,32 @@ class RpcProxy
 
     _refresh_handler_methods: () =>
         obj = @
-        @_do_request({uuid: @_uuid, command: 'available_handlers', args: [], kwargs: {}}, (response) =>
-            @_handler_methods = response.result
-            for m in @_handler_methods
-                obj[m] = (on_recv, args=null, kwargs=null) ->
+        @_do_request({uuid: @_uuid, command: 'available_handlers', args: [], kwargs: {}}, (response) ->
+            obj._handler_methods = response.result
+            for m in obj._handler_methods
+                title = '' + m
+                console.log('handler_method', m: m, title: title)
+                method = (command, on_recv, args=null, kwargs=null) ->
+                    console.log('handler', this.command)
                     data =
                         uuid: obj._uuid
                         args: args ? []
                         kwargs: kwargs ? {}
-                        command: m
-                    _on_recv = (r) ->
+                        command: command
+                    #_on_recv = (r) ->
+                        #if r.error_str?
+                            #throw 'Remote error:\n\n' + r.error_str
+                        #if on_recv?
+                            #on_recv(r.result)
+                    console.log('handler_method', command: command)
+                    obj._do_request($.extend({}, data), (r) ->
                         if r.error_str?
                             throw 'Remote error:\n\n' + r.error_str
                         if on_recv?
                             on_recv(r.result)
-                    obj._do_request(data, _on_recv)
-            @_initialized = true
+                    )
+                obj[m] = coffee_helpers.partial(method, m)
+            obj._initialized = true
         )
 
     _do_request: (message, on_recv) =>

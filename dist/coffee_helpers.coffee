@@ -78,3 +78,5 @@ json_compare = (a, b) ->
     split_last: split_last
     json_compare: json_compare
     Curve: Curve
+    partial: (f, g...) ->
+          (s...) -> f(g..., s...)

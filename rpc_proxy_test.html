@@ -16,11 +16,12 @@
 <h1>TODO:</h1>
 
 
+<script type="text/coffeescript" src="/dist/coffee_helpers.coffee"></script>
 <script type="text/coffeescript" src="/dist/rpc_proxy.coffee"></script>
 
 <script type="text/coffeescript">
     @zmq_context = new nullmq.Context('ws://localhost:9000')
-    @proxy = new RpcProxy(@zmq_context, 'tcp://localhost:55555', 'test-proxy')
+    #@proxy = new RpcProxy(@zmq_context, 'tcp://localhost:55555', 'test-proxy')
 </script>
 
 </body>
