@@ -73,6 +73,16 @@ translate_block_positions = (block_positions) ->
 class PlacementGrid
     constructor: (@grid_container, @width=null) ->
         @zoom = d3.behavior.zoom()
+        @scale =
+            x: d3.scale.linear()
+            y: d3.scale.linear()
+        @dims =
+            x:
+                min: 1000000
+                max: -1
+            y:
+                min: 1000000
+                max: -1
         #console.log('[PlacementGrid.constructor]', @grid_container, @width)
         @header = @grid_container.append('div')
             .attr('class', 'grid_header')
@@ -115,20 +125,10 @@ class PlacementGrid
         zoom = window.location.hash
         result = /#translate\((-?\d+\.\d+),(-?\d+\.\d+)\)\s+scale\((-?\d+\.\d+)\)/.exec(zoom)
         if result and result.length == 4
-            [translate_x, translate_y, scale] = result[1..]
-            @zoom.scale(scale)
+            [translate_x, translate_y, _scale] = result[1..]
+            @zoom.scale(_scale)
             @zoom.translate([translate_x, translate_y])
             @update_zoom()
-        @scale =
-            x: d3.scale.linear()
-            y: d3.scale.linear()
-        @dims =
-            x:
-                min: 1000000
-                max: -1
-            y:
-                min: 1000000
-                max: -1
         @colors = d3.scale.category10().domain(d3.range(10))
         @selected_fill_color_num = 8
         @io_fill_color = @colors(1)
@@ -207,6 +207,7 @@ class PlacementGrid
     _update_zoom: (translate, scale, signal=true) =>
         transform_str = "translate(" + translate + ")" + " scale(" + scale + ")"
         @grid.attr("transform", transform_str)
+        console.log('update_zoom', transform_str)
         if signal
             obj = @
             $(obj).trigger(type: "zoom_updated", grid: obj, translate: translate, scale: scale)
@@ -323,13 +324,18 @@ class PlacementGrid
                 "translate(" + position.x + "," + position.y + ")")
 
     highlight_area_ranges: (area_ranges) ->
+        obj = @
         data = ({area_range: a, text_anchor: @get_anchor_coords(a)} for a in area_ranges)
         area_ranges = @area_ranges.selectAll('.area_range')
             .data(data)
         area_ranges.exit().remove()
         area_ranges.enter().append("svg:rect")
             .attr("class", "area_range")
-            .attr("width", (d) => d.area_range.second_extent * @scale.x(1))
+            .attr("width", (d) =>
+                width = d.area_range.second_extent * obj.scale.x(1)
+                console.log('[area_ranges]', width, d, obj.scale.x(1))
+                width
+            )
             .attr("height", (d) =>
                 d.area_range.first_extent * @scale.y(@dims.y.max)
             )

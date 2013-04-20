@@ -1,8 +1,12 @@
 class PlacementManagerGrid extends PlacementGrid
     constructor: (@placement_manager, @grid_container, @width=null) ->
         super @grid_container, @width
+        @placement_manager.wait_for_init(@_initialize)
 
+    _initialize: (placement_manager) =>
         obj = @
+        for k, v of placement_manager
+            console.log(k, v)
 
         @manager_header = @grid_container.insert('div', '.grid_header')
             .attr('class', 'manager_header')
@@ -32,7 +36,7 @@ class PlacementManagerGrid extends PlacementGrid
             .on('click', (d) ->
                 key_chooser = obj.manager_header_element.find('.manager_key_options')
                 key = obj.keys[key_chooser.val()]
-                console.log('[select_key] on.click', d, key_chooser, key)
+                console.log('[select_key] on.click', key_chooser, key)
                 obj.select_key(outer_i: key[0], inner_i: key[1] ? 0)
             )
 
@@ -55,8 +59,10 @@ class PlacementManagerGrid extends PlacementGrid
                 console.log('[select option]', key_str, current_option)
                 current_option.prop('selected', true)
             if e.block_positions?
-                block_infos = translate_block_positions(e.block_positions)
-                obj._placements[JSON.stringify(e.key)] = block_infos
+                block_infos = translate_block_positions(e.block_positions.block_positions)
+                key = JSON.stringify(e.key)
+                console.log('[placement_selected (setting obj._placements)]', key, block_infos, e)
+                obj._placements[key] = block_infos
                 for prefix, actions of {swaps_: ['apply', 'show'], area_ranges_: ['show']}
                     for action in actions
                         obj[prefix + action](false)
@@ -65,20 +71,21 @@ class PlacementManagerGrid extends PlacementGrid
                             .prop('disabled', true)
                 try
                     obj.placement_manager.get_place_config(((config) ->
-                        obj._place_configs[e.key] = config
+                        obj._place_configs[JSON.stringify(e.key)] = config
                         obj.area_ranges_show(true)
                         obj.manager_header_element.find('.area_ranges_show')
                             .prop('checked', true)
                             .prop('disabled', false)
-                    ), e.key.outer_i, e.key.inner_i ? 0)
+                    ), [e.key.outer_i, e.key.inner_i ? 0])
                 catch e
                     console.log('no config available')
         )
 
         $(obj).on('swap_context_selected', (e) ->
             if e.swap_context?
-                console.log('[swap_context_selected]', e)
-                obj._swap_contexts[JSON.stringify(e.key)] = e.swap_context
+                key = JSON.stringify(e.key)
+                console.log('[swap_context_selected]', e, key)
+                obj._swap_contexts[key] = e.swap_context
                 obj.swaps_show(true)
                 obj.manager_header_element.find('.swaps_show')
                     .prop('disabled', false)
@@ -184,7 +191,7 @@ class PlacementManagerGrid extends PlacementGrid
             # This key was already selected, so do nothing
             return
         obj = @
-        obj.placement_manager.get_block_positions(((block_positions) ->
+        obj.placement_manager.get_placement(((block_positions) ->
                 obj.selected_key = key
                 data =
                     type: 'placement_selected'
@@ -200,9 +207,8 @@ class PlacementManagerGrid extends PlacementGrid
                         block_positions: block_positions
                         swap_context: swap_context
                     $(obj).trigger(data)
-                ), key.outer_i, key.inner_i ? 0)
-            ), key.outer_i, key.inner_i ? 0
-        )
+                ), [key.outer_i, key.inner_i ? 0])
+            ), [key.outer_i, key.inner_i ? 0], {json: true})
 
     swaps_show: (state) =>
         ###
@@ -255,8 +261,10 @@ class PlacementManagerGrid extends PlacementGrid
         ###
         obj = @
         if @selected_key?
+            console.log('[swaps_apply]', obj, state)
             if state
                 s = @_swap_contexts[JSON.stringify(@selected_key)]
+                console.log(s)
                 @set_block_positions(s.apply_swaps(@_placements[JSON.stringify(@selected_key)]))
             else
                 @set_block_positions(@_placements[JSON.stringify(@selected_key)])
@@ -265,9 +273,12 @@ class PlacementManagerGrid extends PlacementGrid
     area_ranges_show: (state) =>
         obj = @
         if @selected_key?
+            console.log('[area_ranges_show]', state, @selected_key, @_place_configs)
             if state
-                c = @_place_configs[@selected_key]
-                @highlight_area_ranges(AreaRange.from_array(a) for a in c.area_ranges)
+                c = @_place_configs[JSON.stringify(@selected_key)]
+                data = (AreaRange.from_array(a) for a in c.area_ranges)
+                console.log('[area_ranges_show]', state, @selected_key, c, data)
+                @highlight_area_ranges(data)
             else
                 @highlight_area_ranges([])
 

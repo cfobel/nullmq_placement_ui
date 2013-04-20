@@ -13,33 +13,28 @@ class RpcProxy
             obj._handler_methods = response.result
             for m in obj._handler_methods
                 title = '' + m
-                console.log('handler_method', m: m, title: title)
                 method = (command, on_recv, args=null, kwargs=null) ->
-                    console.log('handler', this.command)
                     data =
                         uuid: obj._uuid
                         args: args ? []
                         kwargs: kwargs ? {}
                         command: command
-                    #_on_recv = (r) ->
-                        #if r.error_str?
-                            #throw 'Remote error:\n\n' + r.error_str
-                        #if on_recv?
-                            #on_recv(r.result)
-                    console.log('handler_method', command: command)
                     obj._do_request($.extend({}, data), (r) ->
                         if r.error_str?
                             throw 'Remote error:\n\n' + r.error_str
                         if on_recv?
                             on_recv(r.result)
                     )
-                obj[m] = coffee_helpers.partial(method, m)
+                if obj[m]?
+                    method_name = '_rpc__' + m
+                else
+                    method_name = m
+                obj[method_name] = coffee_helpers.partial(method, m)
             obj._initialized = true
         )
 
     _do_request: (message, on_recv) =>
         try
-            console.log(message, on_recv)
             sock = @_context.socket(nullmq.REQ)
             sock.connect(@_uris.rpc)
             sock.send(JSON.stringify(message))

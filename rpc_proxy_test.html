@@ -8,6 +8,8 @@
 <script type="text/javascript" src="/dist/lib/jquery-latest.js"></script>
 <script type="text/javascript" src="/dist/lib/jquery-ui.js"></script>
 <script type="text/javascript" src="/dist/lib/underscore-min.js"></script>
+<script type="text/javascript" src="/dist/lib/d3.v2.js"></script>
+<script type="text/javascript" src="/dist/lib/sylvester.js"></script>
 <script type="text/javascript" src="/dist/lib/coffee-script.js"></script>
 <script type="text/javascript" src="/dist/lib/stomp.js"></script>
 <script type="text/javascript" src="/dist/lib/nullmq.js"></script>
@@ -18,10 +20,15 @@
 
 <script type="text/coffeescript" src="/dist/coffee_helpers.coffee"></script>
 <script type="text/coffeescript" src="/dist/rpc_proxy.coffee"></script>
+<script type="text/coffeescript" src="/dist/placement_manager_proxy.coffee"></script>
 
 <script type="text/coffeescript">
     @zmq_context = new nullmq.Context('ws://localhost:9000')
     #@proxy = new RpcProxy(@zmq_context, 'tcp://localhost:55555', 'test-proxy')
+    on_init = (proxy) ->
+        proxy.get_placement_keys((value) -> console.log(value))
+    @proxy = new PlacementManagerProxy(@zmq_context, 'tcp://localhost:55557',
+                                       'test-proxy', on_init)
 </script>
 
 </body>

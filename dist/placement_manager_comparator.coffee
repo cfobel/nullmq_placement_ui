@@ -17,7 +17,7 @@ class PlacementManagerComparator extends BasePlacementComparator
 
         default_uris =
             a: 'tcp://maeby.fobel.net:9999'
-            b: 'tcp://localhost:1111'
+            b: 'tcp://localhost:55555'
 
         # Add inline forms to allow initialization of a manager from a URI.
         for label in ['a', 'b']
@@ -29,8 +29,10 @@ class PlacementManagerComparator extends BasePlacementComparator
               .select('button')
                 .on('click', (d) -> 
                     d.uri = $(this.parentElement).find('input').val()
-                    d.manager = new PlacementManagerProxy(obj.zmq_context, d.uri)
-                    obj.reset_grid(d.label, d.manager)
+                    d.manager = new PlacementManagerProxy(obj.zmq_context, d.uri, 'blah',
+                        coffee_helpers.partial(obj.reset_grid, d.label)
+                    )
+                    console.log(obj.zmq_context, d.uri, d.manager)
                 )
 
     get_templates: () ->
@@ -50,7 +52,7 @@ class PlacementManagerComparator extends BasePlacementComparator
 
     reset_grid: (label, placement_manager) =>
         @grid_containers[label].html('')
-        console.log('[reset_grid_' + label + ']', @grid_width)
+        console.log('[reset_grid_' + label + ']', @grid_width, label, placement_manager)
         @grids[label] = new PlacementManagerGrid(placement_manager, @grid_containers[label], @grid_width)
         if not @grid_width?
             @grid_width = @grids[label].width * 1.15
