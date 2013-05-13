@@ -151,7 +151,7 @@ class PlacementGrid
                 response.type = 'block_selected'
                 $(obj).trigger(response)
             else
-                d3.select(e.rect).classed('selected', true)
+                d3.select(e.rect).classed('selected', false)
                 obj.deselect_block(e.d)
                 e.d.selected = false
                 response = $().extend({}, e)
