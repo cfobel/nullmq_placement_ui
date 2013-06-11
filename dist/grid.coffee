@@ -207,7 +207,7 @@ class PlacementGrid
     _update_zoom: (translate, scale, signal=true) =>
         transform_str = "translate(" + translate + ")" + " scale(" + scale + ")"
         @grid.attr("transform", transform_str)
-        console.log('update_zoom', transform_str)
+        #console.log('update_zoom', transform_str)
         if signal
             obj = @
             $(obj).trigger(type: "zoom_updated", grid: obj, translate: translate, scale: scale)
@@ -398,11 +398,14 @@ class PlacementGrid
         # Construct a list of the area ranges containing the at least one of
         # the blocks from the list of blocks provided.
         ###
-        area_ranges = {}
-        @area_ranges.selectAll('.area_range').each((d, i) -> area_ranges[i] = d)
+        area_ranges = @get_area_ranges()
         if Object.keys(area_ranges).length <= 0 or blocks.length <= 0
             return {}
         return @blocks_by_area_range(area_ranges, blocks)
+
+    get_area_ranges: () =>
+        area_ranges = {}
+        @area_ranges.selectAll('.area_range').each((d, i) -> area_ranges[i] = d)
 
     get_anchor_coords: (a) ->
         ###

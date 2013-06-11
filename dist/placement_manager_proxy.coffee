@@ -33,7 +33,10 @@ class Placement
 class PlacementManagerProxy extends RpcProxy
     constructor: (@context, @req_uri, @uuid='placement_manager_proxy', on_init=null) ->
         super @context, @req_uri, @uuid
-        @_cache = swap_contexts: {}
+        @_cache =
+            swap_contexts: {}
+            placements: {}
+            place_configs: {}
         if on_init?
             @wait_for_init(on_init)
 
@@ -47,11 +50,30 @@ class PlacementManagerProxy extends RpcProxy
                 on_init(obj)
         setTimeout(check_init, 10)
 
+    get_place_config: (on_recv, key) =>
+        if @_cache.place_configs[key]?
+            # The corresponding swap context is available in our cache
+            console.log('[get_place_config]', 'cache available for key: ', key)
+            on_recv(@_cache.place_configs[key])
+            return
+        obj = @
+        _on_recv = (config) ->
+            obj._cache.place_configs[key] = config
+            on_recv(config)
+        @_rpc__get_place_config(_on_recv, key)
+
     get_placement: (on_recv, key) =>
+        if @_cache.placements[key]?
+            # The corresponding swap context is available in our cache
+            console.log('[get_placement]', 'cache available for key: ', key)
+            on_recv(@_cache.placements[key])
+            return
+        obj = @
         _on_recv = (block_positions) ->
             placement = new Placement(block_positions)
+            obj._cache.placements[key] = placement
             on_recv(placement)
-        @_rpc__get_placement(_on_recv, key)
+        @_rpc__get_placement(_on_recv, key, kwargs={json: true})
 
     get_swap_context: (on_recv, key) =>
         if @_cache.swap_contexts[key]?
