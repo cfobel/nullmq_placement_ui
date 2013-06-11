@@ -169,6 +169,14 @@ class PlacementManagerGrid extends PlacementGrid
             )
         )
 
+    key_index: (key) =>
+        values = (v for k, v of @keys)
+        (i for v,i in values when v == key)[0]
+
+    key_by_index: (index) =>
+        values = (v for k, v of @keys)
+        values[index]
+
     select_key: (key) ->
         ###
         # When a new key is selected, we must:
